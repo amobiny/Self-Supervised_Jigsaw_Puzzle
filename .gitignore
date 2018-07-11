@@ -102,3 +102,11 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+.mypy_cache/
+MNIST_data/
+.idea
+Results/
+data/
+*.h5
+*.hdf5
+
