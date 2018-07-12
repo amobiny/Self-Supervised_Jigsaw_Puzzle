@@ -80,9 +80,10 @@ def generate_data(files, img_size=256, TEST_SUBSET_DATA=True, hdf5_file_name='DA
 
 
 if __name__ == "__main__":
-    directory = "/home/cougarnet.uh.edu/amobiny/Desktop/DATASETS/unlabeled2017/"    # path to images
+    directory = "/home/cougarnet.uh.edu/amobiny/Desktop/DATASETS/unlabeled2017/"
+    # path to images; download link: http://images.cocodataset.org/zips/unlabeled2017.zip
     file_names = glob.glob(directory + "*.jpg")
     generate_data(file_names,
                   img_size=256,
-                  TEST_SUBSET_DATA=True,
-                  hdf5_file_name='COCO_2017_unlabeled_test_dataset.h5')
+                  TEST_SUBSET_DATA=False,
+                  hdf5_file_name='COCO_2017_unlabeled_full.h5')

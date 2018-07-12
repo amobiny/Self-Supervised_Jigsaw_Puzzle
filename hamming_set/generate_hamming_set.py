@@ -32,8 +32,8 @@ def hamming_set(num_crops, num_permutations, selection, output_file_name):
             S = D.argsort()
             j = S[np.random.randint(m - 10, m + 10)]
 
-    h5f = h5py.File('./hamming_set/' + output_file_name, 'w')
-    h5f.create_dataset(output_file_name, data=P)
+    h5f = h5py.File('./hamming_set/' + output_file_name + str(num_permutations), 'w')
+    h5f.create_dataset('max_hamming_set', data=P)
     h5f.close()
     print('file created --> ' + output_file_name)
 
@@ -42,4 +42,4 @@ if __name__ == "__main__":
     hamming_set(num_crops=9,
                 num_permutations=100,
                 selection='max',
-                output_file_name='max_hamming_set.h5')
+                output_file_name='max_hamming_set_')

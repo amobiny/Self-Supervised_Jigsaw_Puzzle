@@ -14,7 +14,7 @@ flags.DEFINE_float('lr_min', 1e-5, 'Minimum learning rate')
 
 # Hyper-parameters
 flags.DEFINE_float('lmbda', 1e-3, 'L2 regularization coefficient')
-flags.DEFINE_integer('batch_size', 64, 'training batch size')
+flags.DEFINE_integer('batchSize', 64, 'training batch size')
 
 # data
 flags.DEFINE_string('data_path', './prepare_data/COCO_2017_unlabeled.h5', 'Data path')
@@ -23,13 +23,13 @@ flags.DEFINE_integer('max_angle', 40, 'Maximum rotation angle along each axis; w
 flags.DEFINE_integer('height', 64, 'Input height size')
 flags.DEFINE_integer('width', 64, 'Input width size')
 flags.DEFINE_integer('depth', 32, 'Input depth size')
-flags.DEFINE_integer('numChannels', 1, 'Input channel size')
+flags.DEFINE_integer('numChannels', 3, 'Input channel size')
 
 # hamming set
-flags.DEFINE_boolean('generateHammingSet', True, 'Generate a new HammingSet')
+flags.DEFINE_boolean('generateHammingSet', False, 'Generate a new HammingSet')
 flags.DEFINE_integer('hammingSetSize', 100, 'Hamming set size')
 flags.DEFINE_string('selectionMethod', 'max', 'max or mean')
-flags.DEFINE_string('hammingFileName', 'max_hamming_set.h5', 'Name of the file to be saved')
+flags.DEFINE_string('hammingFileName', 'max_hamming_set_100.h5', 'Name of the file to be saved')
 
 
 # jigsaw

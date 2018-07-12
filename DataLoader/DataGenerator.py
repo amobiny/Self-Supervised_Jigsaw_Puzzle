@@ -35,8 +35,8 @@ class DataGenerator:
 
     def batch_counter(self):
         h5f = h5py.File(self.data_path, 'r')
-        self.numTrainBatch = h5f['train_img'][:].shape[0]
-        self.numValBatch = h5f['val_img'][:].shape[0]
+        self.numTrainBatch = h5f['train_img'][:].shape[0] // self.batchSize
+        self.numValBatch = h5f['val_img'][:].shape[0] // self.batchSize
         h5f.close()
         self.batchIndexTrain = 0
         self.batchIndexVal = 0
@@ -65,27 +65,28 @@ class DataGenerator:
         """
         return np.array([[1 if y[i] == j else 0 for j in range(self.numClasses)] for i in range(y.shape[0])])
 
-    def next_batch(self, mode='train'):
+    def generate(self, mode='train'):
         """
         Explain
         """
-        if mode == 'train':
-            self.batchIndexTrain += 1  # Increment the batch index
-            h5f = h5py.File(self.data_path, 'r')
-            x = h5f['train_img'][self.batchIndexTrain * self.batchSize:(self.batchIndexTrain + 1) * self.batchSize, ...]
-            h5f.close()
-            X, y = self.__data_generation_normalize(x)
-            if self.batchIndexTrain == self.numTrainBatch:
-                self.batchIndexTrain = 0
-        elif mode == 'valid':
-            self.batchIndexVal += 1  # Increment the batch index
-            h5f = h5py.File(self.data_path, 'r')
-            x = h5f['valid_img'][self.batchIndexVal * self.batchSize:(self.batchIndexVal + 1) * self.batchSize, ...]
-            h5f.close()
-            X, y = self.__data_generation_normalize(x)
-            if self.batchIndexVal == self.numValBatch:
-                self.batchIndexVal = 0
-        return X, self.one_hot(y)
+        while True:
+            if mode == 'train':
+                self.batchIndexTrain += 1  # Increment the batch index
+                h5f = h5py.File(self.data_path, 'r')
+                x = h5f['train_img'][self.batchIndexTrain * self.batchSize:(self.batchIndexTrain + 1) * self.batchSize, ...]
+                h5f.close()
+                X, y = self.__data_generation_normalize(x.astype(np.float32))
+                if self.batchIndexTrain == self.numTrainBatch:
+                    self.batchIndexTrain = 0
+            elif mode == 'valid':
+                self.batchIndexVal += 1  # Increment the batch index
+                h5f = h5py.File(self.data_path, 'r')
+                x = h5f['val_img'][self.batchIndexVal * self.batchSize:(self.batchIndexVal + 1) * self.batchSize, ...]
+                h5f.close()
+                X, y = self.__data_generation_normalize(x.astype(np.float32))
+                if self.batchIndexVal == self.numValBatch:
+                    self.batchIndexVal = 0
+            yield X, self.one_hot(y)
 
     def create_croppings(self, image):
         """
