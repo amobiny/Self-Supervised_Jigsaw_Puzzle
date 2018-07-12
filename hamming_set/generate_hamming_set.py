@@ -27,12 +27,12 @@ def hamming_set(num_crops, num_permutations, selection, output_file_name):
 
         if selection == 'max':
             j = D.argmax()
-        else:
+        elif selection == 'mean':
             m = int(D.shape[0] / 2)
             S = D.argsort()
             j = S[np.random.randint(m - 10, m + 10)]
 
-    h5f = h5py.File(output_file_name, 'w')
+    h5f = h5py.File('./hamming_set/' + output_file_name, 'w')
     h5f.create_dataset(output_file_name, data=P)
     h5f.close()
     print('file created --> ' + output_file_name)

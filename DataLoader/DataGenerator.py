@@ -1,11 +1,6 @@
 import h5py
 import random
-import time
 import numpy as np
-from image_preprocessing import image_transform
-import itertools
-import warnings
-import threading
 
 
 class DataGenerator:
@@ -14,30 +9,29 @@ class DataGenerator:
     a time, converts it into the jigsaw, and then returns the data
     """
 
-    def __init__(self, conf, maxHammingSet, data_path='./prepare_data/COCO_2017_unlabeled.h5',
-                 xDim=64, yDim=64, numChannels=3, numCrops=9, cropSize=225, cellSize=75,
-                 tileSize=64, colorJitter=2, batchSize=32, meanTensor=None, stdTensor=None):
+    def __init__(self, conf, maxHammingSet):
         """
-        meanTensor - rank 3 tensor of the mean for each pixel for all colour channels, used to normalize the data
-        stdTensor - rank 3 tensor of the std for each pixel for all colour channels, used to normalize the data
-        maxHammingSet - a
+        Explain
         """
         self.data_path = conf.data_path
-        self.xDim = xDim
-        self.yDim = yDim
-        self.numChannels = numChannels
-        self.numCrops = numCrops
-        self.cropSize = cropSize
-        self.cellSize = cellSize
-        self.tileSize = tileSize
-        self.colorJitter = colorJitter
-        self.batchSize = batchSize
-        self.meanTensor = meanTensor.astype(np.float32)
-        self.stdTensor = stdTensor.astype(np.float32)
+        self.numChannels = conf.numChannels
+        self.numCrops = conf.numCrops
+        self.cropSize = conf.cropSize
+        self.cellSize = conf.cellSize
+        self.tileSize = conf.tileSize
+        self.colorJitter = conf.colorJitter
+        self.batchSize = conf.batchSize
+        self.meanTensor, self.stdTensor = self.get_stats()
         self.maxHammingSet = np.array(maxHammingSet, dtype=np.uint8)
         self.batch_counter()
-        self.numJigsawTypes = self.maxHammingSet.shape[0]
-        self.numPermutations = self.maxHammingSet.shape[0]
+        self.numClasses = self.maxHammingSet.shape[0]   # i.e. number of jigsaw types
+
+    def get_stats(self):
+        h5f = h5py.File(self.data_path, 'r')
+        mean = h5f['train_mean'][:].astype(np.float32)
+        std = h5f['train_std'][:].astype(np.float32)
+        h5f.close()
+        return mean, std
 
     def batch_counter(self):
         h5f = h5py.File(self.data_path, 'r')
@@ -49,15 +43,14 @@ class DataGenerator:
 
     def __data_generation_normalize(self, x):
         """
-        Internal method used to help generate data, used when
-        dataset - an HDF5 dataset (either train or validation)
+        Explain
         """
         x -= self.meanTensor
         x /= self.stdTensor
         # This implementation modifies each image individually
         y = np.empty(self.batchSize)
         # Python list of 4D numpy tensors for each channel
-        X = [np.empty((self.batchSize, self.xDim, self.yDim, self.numChannels), np.float32)
+        X = [np.empty((self.batchSize, self.tileSize, self.tileSize, self.numChannels), np.float32)
              for _ in range(self.numCrops)]
         for image_num in range(self.batchSize):
             # Transform the image into its nine crops
@@ -68,13 +61,13 @@ class DataGenerator:
 
     def one_hot(self, y):
         """
-        Returns labels in binary NumPy array
+        Explain
         """
-        return np.array([[1 if y[i] == j else 0 for j in range(self.numJigsawTypes)] for i in range(y.shape[0])])
+        return np.array([[1 if y[i] == j else 0 for j in range(self.numClasses)] for i in range(y.shape[0])])
 
     def next_batch(self, mode='train'):
         """
-        dataset - an HDF5 dataset (either train or validation)
+        Explain
         """
         if mode == 'train':
             self.batchIndexTrain += 1  # Increment the batch index
@@ -112,8 +105,8 @@ class DataGenerator:
         crop_x = random.randrange(x_dim - self.cropSize)
         crop_y = random.randrange(y_dim - self.cropSize)
         # Select which image ordering we'll use from the maximum hamming set
-        perm_index = random.randrange(self.numPermutations)
-        final_crops = np.zeros((self.tileSize, self.tileSize, 3, 9), dtype=np.float32)
+        perm_index = random.randrange(self.numClasses)
+        final_crops = np.zeros((self.tileSize, self.tileSize, self.numChannels, self.numCrops), dtype=np.float32)
         for row in range(3):
             for col in range(3):
                 x_start = crop_x + col * self.cellSize + random.randrange(self.cellSize - self.tileSize)
@@ -125,11 +118,7 @@ class DataGenerator:
 
     def color_channel_jitter(self, image):
         """
-        Takes in a 3D numpy array and then jitters the colour channels by
-        between -2 and 2 pixels (to deal with overfitting to chromatic
-        aberations).
-        Input - a WxHx3 numpy array
-        Output - a (W-4)x(H-4)x3 numpy array (3 colour channels for RGB)
+        Explain
         """
         # Determine the dimensions of the array, minus the crop around the border
         # of 4 pixels (threshold margin due to 2 pixel jitter)
