@@ -14,7 +14,7 @@ class DataGenerator:
     a time, converts it into the jigsaw, and then returns the data
     """
 
-    def __init__(self, maxHammingSet, data_path='./prepare_data/COCO_2017_unlabeled.h5',
+    def __init__(self, conf, maxHammingSet, data_path='./prepare_data/COCO_2017_unlabeled.h5',
                  xDim=64, yDim=64, numChannels=3, numCrops=9, cropSize=225, cellSize=75,
                  tileSize=64, colorJitter=2, batchSize=32, meanTensor=None, stdTensor=None):
         """
@@ -22,7 +22,7 @@ class DataGenerator:
         stdTensor - rank 3 tensor of the std for each pixel for all colour channels, used to normalize the data
         maxHammingSet - a
         """
-        self.data_path = data_path
+        self.data_path = conf.data_path
         self.xDim = xDim
         self.yDim = yDim
         self.numChannels = numChannels
@@ -70,10 +70,8 @@ class DataGenerator:
         """
         Returns labels in binary NumPy array
         """
-        return np.array([[1 if y[i] == j else 0 for j in range(self.numJigsawTypes)]
-                         for i in range(y.shape[0])])
+        return np.array([[1 if y[i] == j else 0 for j in range(self.numJigsawTypes)] for i in range(y.shape[0])])
 
-    #  @threadsafe_generator
     def next_batch(self, mode='train'):
         """
         dataset - an HDF5 dataset (either train or validation)
