@@ -1,5 +1,4 @@
 import tensorflow as tf
-import time
 
 flags = tf.app.flags
 flags.DEFINE_string('mode', 'train', 'train or test')
@@ -32,7 +31,6 @@ flags.DEFINE_integer('hammingSetSize', 100, 'Hamming set size')
 flags.DEFINE_string('selectionMethod', 'max', 'max or mean')
 flags.DEFINE_string('hammingFileName', 'max_hamming_set_100.h5', 'Name of the file to be saved')
 
-
 # jigsaw
 flags.DEFINE_integer('numCrops', 9, 'The number of jigsaw-puzzle crops')
 flags.DEFINE_integer('cellSize', 75, 'The dimensions of the jigsaw input')
@@ -48,6 +46,5 @@ flags.DEFINE_string('savedir', './Results/result/', 'Results saving directory')
 
 flags.DEFINE_string('model_name', 'model', 'Model file name')
 flags.DEFINE_integer('reload_step', 0, 'Reload step to continue training')
-
 
 args = tf.app.flags.FLAGS
