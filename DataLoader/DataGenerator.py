@@ -69,24 +69,33 @@ class DataGenerator:
         """
         Explain
         """
-        while True:
-            if mode == 'train':
-                self.batchIndexTrain += 1  # Increment the batch index
-                h5f = h5py.File(self.data_path, 'r')
-                x = h5f['train_img'][self.batchIndexTrain * self.batchSize:(self.batchIndexTrain + 1) * self.batchSize, ...]
-                h5f.close()
-                X, y = self.__data_generation_normalize(x.astype(np.float32))
-                if self.batchIndexTrain == self.numTrainBatch:
-                    self.batchIndexTrain = 0
-            elif mode == 'valid':
-                self.batchIndexVal += 1  # Increment the batch index
-                h5f = h5py.File(self.data_path, 'r')
-                x = h5f['val_img'][self.batchIndexVal * self.batchSize:(self.batchIndexVal + 1) * self.batchSize, ...]
-                h5f.close()
-                X, y = self.__data_generation_normalize(x.astype(np.float32))
-                if self.batchIndexVal == self.numValBatch:
-                    self.batchIndexVal = 0
-            yield X, self.one_hot(y)
+        if mode == 'train':
+            h5f = h5py.File(self.data_path, 'r')
+            x = h5f['train_img'][self.batchIndexTrain * self.batchSize:(self.batchIndexTrain + 1) * self.batchSize, ...]
+            h5f.close()
+            X, y = self.__data_generation_normalize(x.astype(np.float32))
+            self.batchIndexTrain += 1  # Increment the batch index
+            if self.batchIndexTrain == self.numTrainBatch:
+                self.batchIndexTrain = 0
+        elif mode == 'valid':
+            h5f = h5py.File(self.data_path, 'r')
+            x = h5f['val_img'][self.batchIndexVal * self.batchSize:(self.batchIndexVal + 1) * self.batchSize, ...]
+            h5f.close()
+            X, y = self.__data_generation_normalize(x.astype(np.float32))
+            self.batchIndexVal += 1  # Increment the batch index
+            if self.batchIndexVal == self.numValBatch:
+                self.batchIndexVal = 0
+        return np.transpose(np.array(X), axes=[1, 2, 3, 4, 0]), self.one_hot(y)
+
+    def randomize(self):
+        """ Randomizes the order of data samples"""
+        h5f = h5py.File(self.data_path, 'a')
+        train_img = h5f['train_img'][:].astype(np.float32)
+        permutation = np.random.permutation(train_img.shape[0])
+        train_img = train_img[permutation, :, :, :]
+        del h5f['train_img']
+        h5f.create_dataset('train_img', data=train_img)
+        h5f.close()
 
     def create_croppings(self, image):
         """

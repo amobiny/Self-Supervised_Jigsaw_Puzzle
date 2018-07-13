@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image
 import glob
 import random
+import os
 
 
 def generate_data(files, img_size=256, TEST_SUBSET_DATA=True, hdf5_file_name='DATA'):
@@ -14,6 +15,9 @@ def generate_data(files, img_size=256, TEST_SUBSET_DATA=True, hdf5_file_name='DA
     :param TEST_SUBSET_DATA: True when only generating from a subset of all files
     :param hdf5_file_name: name of the output HDF5 file
     """
+    training_mean_new = np.zeros((img_size, img_size, 3), dtype=np.float32)
+    training_mean_old = np.zeros((img_size, img_size, 3), dtype=np.float32)
+    training_variance = np.zeros((img_size, img_size, 3), dtype=np.float32)
     # Shuffle the data
     random.shuffle(files)
     # Split data 70% train, 15% validation, 15% test
@@ -33,6 +37,9 @@ def generate_data(files, img_size=256, TEST_SUBSET_DATA=True, hdf5_file_name='DA
                                    np.uint8, compression="gzip")
         hdf5_output.create_dataset("test_img", (len(files_dict["test_img"]), img_size, img_size, 3),
                                    np.uint8, compression="gzip")
+        hdf5_output.create_dataset("train_mean", (img_size, img_size, 3), np.float32, compression="gzip")
+        hdf5_output.create_dataset("train_std", (img_size, img_size, 3), np.float32, compression="gzip")
+
     else:
         files_dict["train_img"] = files[:int(0.7 * len(files))]
         files_dict["val_img"] = files[int(0.7 * len(files)):int(0.85 * len(files))]
@@ -43,6 +50,8 @@ def generate_data(files, img_size=256, TEST_SUBSET_DATA=True, hdf5_file_name='DA
         hdf5_output.create_dataset("train_img", (len(files_dict["train_img"]), img_size, img_size, 3), np.uint8)
         hdf5_output.create_dataset("val_img", (len(files_dict["val_img"]), img_size, img_size, 3), np.uint8)
         hdf5_output.create_dataset("test_img", (len(files_dict["test_img"]), img_size, img_size, 3), np.uint8)
+        hdf5_output.create_dataset("train_mean", (img_size, img_size, 3), np.float32)
+        hdf5_output.create_dataset("train_std", (img_size, img_size, 3), np.float32)
 
     start_time = time()
     small_start = start_time
@@ -62,6 +71,20 @@ def generate_data(files, img_size=256, TEST_SUBSET_DATA=True, hdf5_file_name='DA
                         (crop_shift, 0, im.size[1] + crop_shift, im.size[1]))
                 im = im.resize((img_size, img_size), resample=Image.LANCZOS)
                 numpy_image = np.array(im, dtype=np.uint8)
+                # Calculate per feature mean and variance on training data only
+                if img_type == "train_img":
+                    # Using Welford method for online calculation of mean and
+                    # variance
+                    if index > 0:
+                        training_mean_new = training_mean_old + \
+                                            (numpy_image - training_mean_old) / (index + 1)
+                        training_variance = training_variance + \
+                                            (numpy_image - training_mean_old) * \
+                                            (numpy_image - training_mean_new)
+                        training_mean_old = training_mean_new
+                    else:
+                        training_mean_new = numpy_image
+                        training_mean_old = numpy_image
                 # Save the image to the HDF5 output file
                 hdf5_output[img_type][index, ...] = numpy_image
                 if index % 1000 == 0 and index > 0:
@@ -69,12 +92,11 @@ def generate_data(files, img_size=256, TEST_SUBSET_DATA=True, hdf5_file_name='DA
                     print("Saved {} {}s to hdf5 file in {} seconds".format(
                         index, img_type, small_end - small_start))
                     small_start = time()
-
-    # Calculate and append the mean and std of train images
-    training_mean = np.mean(hdf5_output['train_img'], axis=0)
-    training_std = np.std(hdf5_output['train_img'], axis=0, ddof=1)
-    hdf5_output["train_mean"] = training_mean
-    hdf5_output["train_std"] = training_std
+    # Calculate the std using the variance array
+    training_std = np.zeros((img_size, img_size, 3), dtype=np.float32)
+    np.sqrt(training_variance / (len(files_dict["train_img"]) - 1), training_std)
+    hdf5_output["train_mean"][...] = training_mean_new
+    hdf5_output["train_std"][...] = training_std
     end_time = time()
     print("Elapsed time: {} seconds".format(end_time - start_time))
 
@@ -86,4 +108,4 @@ if __name__ == "__main__":
     generate_data(file_names,
                   img_size=256,
                   TEST_SUBSET_DATA=False,
-                  hdf5_file_name='COCO_2017_unlabeled_full.h5')
+                  hdf5_file_name='COCO_2017_unlabeled.h5')
