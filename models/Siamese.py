@@ -152,13 +152,13 @@ class Siamese(object):
         if valid_acc > self.best_validation_accuracy:
             self.best_validation_accuracy = valid_acc
             self.save(epoch)
-            improved_str = '*'
+            improved_str = '(improved)'
         else:
             improved_str = ''
-        print('-' * 30 + 'Validation' + '-' * 30)
-        print('After {0} epoch: val_loss= {1:.4f}, val_acc={2:.01%}{3}'.
+        print('-' * 20 + 'Validation' + '-' * 20)
+        print('After {0} epoch: val_loss= {1:.4f}, val_acc={2:.01%} {3}'.
               format(epoch, valid_loss, valid_acc, improved_str))
-        print('-' * 70)
+        print('-' * 50)
 
     def test(self, epoch_num):
         self.reload(epoch_num)
@@ -190,4 +190,4 @@ class Siamese(object):
             return
         print('----> Restoring the model...')
         self.saver.restore(self.sess, model_path)
-        print('----> Model successfully restored')
+        print('----> Model-{} successfully restored'.format(epoch))
