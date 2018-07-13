@@ -9,9 +9,7 @@ This network is almost similar to the one with 50 layer used in the original
 paper: "Deep Residual Learning for Image Recognition"
 **********************************************************************************
 """
-
 import tensorflow as tf
-
 from models.loss_ops import cross_entropy_loss
 from ops import *
 from AlexNet import AlexNet
@@ -110,6 +108,7 @@ class Siamese(object):
 
     def train(self):
         self.sess.run(tf.local_variables_initializer())
+        self.best_validation_accuracy = 0
         self.data_reader = DataGenerator(self.conf, self.HammingSet)
         if self.conf.reload_step > 0:
             self.reload(self.conf.reload_step)
@@ -137,9 +136,7 @@ class Siamese(object):
                     print('step: {0:<6}, train_loss= {1:.4f}, train_acc={2:.01%}'.format(train_step, loss, acc))
                 else:
                     self.sess.run([self.train_op, self.mean_loss_op, self.mean_accuracy_op], feed_dict=feed_dict)
-
             self.evaluate(epoch)
-            self.save(epoch)
 
     def evaluate(self, epoch):
         self.is_train = False
@@ -152,12 +149,31 @@ class Siamese(object):
         summary_valid = self.sess.run(self.merged_summary, feed_dict=feed_dict)
         valid_loss, valid_acc = self.sess.run([self.mean_loss, self.mean_accuracy])
         self.save_summary(summary_valid, epoch * self.data_reader.numTrainBatch, mode='valid')
+        if valid_acc > self.best_validation_accuracy:
+            self.best_validation_accuracy = valid_acc
+            self.save(epoch)
+            improved_str = '*'
+        else:
+            improved_str = ''
         print('-' * 30 + 'Validation' + '-' * 30)
-        print('After {0} epoch: val_loss= {1:.4f}, val_acc={2:.01%}'.format(epoch, valid_loss, valid_acc))
+        print('After {0} epoch: val_loss= {1:.4f}, val_acc={2:.01%}{3}'.
+              format(epoch, valid_loss, valid_acc, improved_str))
         print('-' * 70)
 
-    def test(self):
-        pass
+    def test(self, epoch_num):
+        self.reload(epoch_num)
+        self.data_reader = DataGenerator(self.conf, self.HammingSet)
+        self.is_train = False
+        self.sess.run(tf.local_variables_initializer())
+        for step in range(self.data_reader.numTestBatch):
+            x_test, y_test = self.data_reader.generate(mode='test')
+            feed_dict = {self.x: x_test, self.y: y_test, self.keep_prob: 1}
+            self.sess.run([self.mean_loss_op, self.mean_accuracy_op], feed_dict=feed_dict)
+        test_loss, test_acc = self.sess.run([self.mean_loss, self.mean_accuracy])
+        print('-' * 18 + 'Test Completed' + '-' * 18)
+        print('test_loss= {0:.4f}, test_acc={1:.01%}'.
+              format(test_loss, test_acc))
+        print('-' * 50)
 
     def save(self, epoch):
         print('*' * 50)
@@ -167,7 +183,7 @@ class Siamese(object):
         self.saver.save(self.sess, checkpoint_path, global_step=epoch)
 
     def reload(self, epoch):
-        checkpoint_path = os.path.join(self.conf.modeldir, self.conf.model_name)
+        checkpoint_path = os.path.join(self.conf.modeldir+self.conf.run_name, self.conf.model_name)
         model_path = checkpoint_path + '-' + str(epoch)
         if not os.path.exists(model_path + '.meta'):
             print('----> No such checkpoint found', model_path)

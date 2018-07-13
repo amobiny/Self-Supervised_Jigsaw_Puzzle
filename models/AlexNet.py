@@ -12,7 +12,6 @@ Comments: Includes function which creates the 3D ResNet with 50 layer.
 """
 
 from ops import conv_2d, flatten_layer, fc_layer, dropout, max_pool
-import tensorflow as tf
 
 
 def AlexNet(X, keep_prob, is_train):

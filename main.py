@@ -1,10 +1,8 @@
 import h5py
 import tensorflow as tf
-from DataLoader.DataGenerator import DataGenerator
 from hamming_set.generate_hamming_set import hamming_set
 from config import args
 import numpy as np
-from time import strftime, localtime
 import os
 from models.Siamese import Siamese
 
@@ -31,7 +29,7 @@ def main(_):
         if args.mode == 'train':
             model.train()
         elif args.mode == 'test':
-            model.test()
+            model.test(epoch_num=6)
 
 
 if __name__ == '__main__':

@@ -37,9 +37,11 @@ class DataGenerator:
         h5f = h5py.File(self.data_path, 'r')
         self.numTrainBatch = h5f['train_img'][:].shape[0] // self.batchSize
         self.numValBatch = h5f['val_img'][:].shape[0] // self.batchSize
+        self.numTestBatch = h5f['test_img'][:].shape[0] // self.batchSize
         h5f.close()
         self.batchIndexTrain = 0
         self.batchIndexVal = 0
+        self.batchIndexTest = 0
 
     def __data_generation_normalize(self, x):
         """
@@ -85,6 +87,14 @@ class DataGenerator:
             self.batchIndexVal += 1  # Increment the batch index
             if self.batchIndexVal == self.numValBatch:
                 self.batchIndexVal = 0
+        elif mode == 'test':
+            h5f = h5py.File(self.data_path, 'r')
+            x = h5f['test_img'][self.batchIndexTest * self.batchSize:(self.batchIndexTest + 1) * self.batchSize, ...]
+            h5f.close()
+            X, y = self.__data_generation_normalize(x.astype(np.float32))
+            self.batchIndexTest += 1  # Increment the batch index
+            if self.batchIndexTest == self.numTestBatch:
+                self.batchIndexTest = 0
         return np.transpose(np.array(X), axes=[1, 2, 3, 4, 0]), self.one_hot(y)
 
     def randomize(self):
