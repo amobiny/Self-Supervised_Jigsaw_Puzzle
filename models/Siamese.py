@@ -9,10 +9,9 @@ This network is almost similar to the one with 50 layer used in the original
 paper: "Deep Residual Learning for Image Recognition"
 **********************************************************************************
 """
-import tensorflow as tf
-from models.loss_ops import cross_entropy_loss
-from ops import *
-from AlexNet import AlexNet
+from models.AlexNet.loss_ops import cross_entropy_loss
+from AlexNet.ops import *
+from AlexNet.AlexNet import AlexNet
 import numpy as np
 from DataLoader.DataGenerator import DataGenerator
 import os
