@@ -11,19 +11,21 @@ Comments: Includes function which creates the 3D ResNet with 50 layer.
 **********************************************************************************
 """
 
-from ops import conv_2d, flatten_layer, fc_layer, dropout, max_pool
+from ops import conv_2d, flatten_layer, fc_layer, dropout, max_pool, lrn
 
 
 def AlexNet(X, keep_prob, is_train):
-    net = conv_2d(X, 7, 2, 96, 'CONV1', is_train=is_train, batch_norm=True, add_reg=False, use_relu=True)
+    net = conv_2d(X, 7, 2, 96, 'CONV1', is_train=is_train, batch_norm=False, add_reg=False, use_relu=True)
+    net = lrn(net)
     net = max_pool(net, 3, 2, 'MaxPool1')
-    net = conv_2d(net, 5, 2, 256, 'CONV2', is_train=is_train, batch_norm=True, add_reg=False, use_relu=True)
+    net = conv_2d(net, 5, 2, 256, 'CONV2', is_train=is_train, batch_norm=False, add_reg=False, use_relu=True)
+    net = lrn(net)
     net = max_pool(net, 3, 2, 'MaxPool2')
-    net = conv_2d(net, 3, 1, 384, 'CONV3', is_train=is_train, batch_norm=True, add_reg=False, use_relu=True)
-    net = conv_2d(net, 3, 1, 384, 'CONV4', is_train=is_train, batch_norm=True, add_reg=False, use_relu=True)
-    net = conv_2d(net, 3, 1, 256, 'CONV5', is_train=is_train, batch_norm=True, add_reg=False, use_relu=True)
+    net = conv_2d(net, 3, 1, 384, 'CONV3', is_train=is_train, batch_norm=False, add_reg=False, use_relu=True)
+    net = conv_2d(net, 3, 1, 384, 'CONV4', is_train=is_train, batch_norm=False, add_reg=False, use_relu=True)
+    net = conv_2d(net, 3, 1, 256, 'CONV5', is_train=is_train, batch_norm=False, add_reg=False, use_relu=True)
     net = max_pool(net, 3, 2, 'MaxPool3')
     layer_flat = flatten_layer(net)
-    net = fc_layer(layer_flat, 512, 'FC1', is_train=is_train, batch_norm=True, add_reg=False, use_relu=True)
+    net = fc_layer(layer_flat, 512, 'FC1', is_train=is_train, batch_norm=False, add_reg=False, use_relu=True)
     net = dropout(net, keep_prob)
     return net

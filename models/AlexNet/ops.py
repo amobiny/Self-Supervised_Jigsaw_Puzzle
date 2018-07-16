@@ -120,31 +120,5 @@ def batch_norm_wrapper(inputs, is_training, decay=0.999, epsilon=1e-3):
         return tf.nn.batch_normalization(inputs, pop_mean, pop_var, beta, scale, epsilon)
 
 
-def bottleneck_block(x, block_name, is_train,
-                     s1, k1, nf1, name1,
-                     s2, k2, nf2, name2,
-                     s3, k3, nf3, name3,
-                     s4, k4, name4, first_block=False):
-    with tf.variable_scope(block_name):
-        # Convolutional Layer 1
-        layer_conv1 = conv_2d(inputs=x, filter_size=k1, stride=s1, num_filters=nf1, name=name1,
-                              is_train=is_train, batch_norm=True, add_reg=False, use_relu=True)
-
-        # Convolutional Layer 2
-        layer_conv2 = conv_2d(inputs=layer_conv1, filter_size=k2, stride=s2, num_filters=nf2, name=name2,
-                              is_train=is_train, batch_norm=True, add_reg=False, use_relu=True)
-
-        # Convolutional Layer 3
-        layer_conv3 = conv_2d(inputs=layer_conv2, filter_size=k3, stride=s3, num_filters=nf3, name=name3,
-                              is_train=is_train, batch_norm=True, add_reg=False, use_relu=False)
-        if first_block:
-            shortcut = conv_2d(inputs=x, filter_size=k4, stride=s4, num_filters=nf3, name=name4,
-                               is_train=is_train, batch_norm=True, add_reg=False, use_relu=False)
-            assert (
-                shortcut.get_shape().as_list() == layer_conv3.get_shape().as_list()), "Tensor sizes of the two branches are not matched!"
-            res = shortcut + layer_conv3
-        else:
-            res = layer_conv3 + x
-            assert (
-                x.get_shape().as_list() == layer_conv3.get_shape().as_list()), "Tensor sizes of the two branches are not matched!"
-    return tf.nn.relu(res)
+def lrn(inputs, depth_radius=2, alpha=0.0001, beta=0.75, bias=1.0):
+    return tf.nn.local_response_normalization(inputs, depth_radius=depth_radius, alpha=alpha, beta=beta, bias=bias)
