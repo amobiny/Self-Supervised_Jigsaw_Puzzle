@@ -5,34 +5,37 @@ from keras import layers
 from layers.ops import squash
 
 
-class CapsNet:
+def CapsNet(x, conf):
+    # Layer 1: A 3D conv layer
+    conv1 = layers.Conv2D(filters=64, kernel_size=5, strides=1,
+                          padding='same', activation='relu', name='conv1')(x)
 
-    def __init__(self, x, is_train):
-        self.x = x
-        self.is_train = is_train
+    # Reshape layer to be 1 capsule x caps_dim(=filters)
+    _, H, W, C = conv1.get_shape()
+    conv1_reshaped = layers.Reshape((H.value, W.value, 1, C.value))(conv1)
 
-    def build_network(self):
-        with tf.variable_scope('CapsNet'):
-            # Layer 1: A 3D conv layer
-            conv1 = layers.Conv3D(filters=256, kernel_size=9, strides=1,
-                                  padding='valid', activation='relu', name='conv1')(self.x)
+    # Layer 2: Convolutional Capsule
+    primary_caps = ConvCapsuleLayer(kernel_size=5, num_caps=4, caps_dim=16, strides=2, padding='same',
+                                    routings=3, name='primarycaps')(conv1_reshaped)
 
-            # Layer 2: Primary Capsule Layer; simply a 3D conv + reshaping
-            primary_caps = layers.Conv3D(filters=256, kernel_size=9, strides=2,
-                                         padding='valid', activation='relu', name='primary_caps')(conv1)
-            _, H, W, D, dim = primary_caps.get_shape()
-            primary_caps_reshaped = layers.Reshape((H.value * W.value * D.value, dim.value))(primary_caps)
-            caps1_output = squash(primary_caps_reshaped)
-            # [?, 512, 256]
-            # Layer 3: Digit Capsule Layer; Here is where the routing takes place
-            digitcaps_layer = FCCapsuleLayer(num_caps=self.conf.num_cls, caps_dim=self.conf.digit_caps_dim,
-                                             routings=3, name='digit_caps')
-            self.digit_caps = digitcaps_layer(caps1_output)  # [?, 2, 16]
-            u_hat = digitcaps_layer.get_predictions(caps1_output)  # [?, 2, 512, 16]
-            u_hat_shape = u_hat.get_shape().as_list()
-            self.img_s = int(round(u_hat_shape[2] ** (1. / 3)))
-            self.u_hat = layers.Reshape(
-                (self.conf.num_cls, self.img_s, self.img_s, self.img_s, 1, self.conf.digit_caps_dim))(u_hat)
-            # self.u_hat = tf.transpose(u_hat, perm=[1, 0, 2, 3, 4, 5, 6])
-            # u_hat: [?, 2, 8, 8, 8, 1, 16]
-            self.decoder()
+    # Layer 3: Convolutional Capsule
+    # secondary_caps = ConvCapsuleLayer(kernel_size=5, num_caps=4, caps_dim=8, strides=2, padding='same',
+    #                                   routings=3, name='secondarycaps')(primary_caps)
+    _, H, W, D, dim = primary_caps.get_shape()
+    sec_cap_reshaped = layers.Reshape((H.value * W.value * D.value, dim.value))(primary_caps)
+
+    # Layer 4: Fully-connected Capsule
+    digit_caps = FCCapsuleLayer(num_caps=conf.num_cls, caps_dim=conf.digit_caps_dim,
+                                routings=3, name='secondarycaps')(sec_cap_reshaped)
+    # [?, 10, 16]
+
+    epsilon = 1e-9
+    v_length = tf.sqrt(tf.reduce_sum(tf.square(digit_caps), axis=2, keep_dims=True) + epsilon)
+    # [?, 10, 1]
+
+    y_prob_argmax = tf.to_int32(tf.argmax(v_length, axis=1))
+    # [?, 1]
+    y_pred = tf.squeeze(y_prob_argmax)
+    # [?] (predicted labels)
+    y_pred_ohe = tf.one_hot(y_pred, depth=conf.num_cls)
+    # [?, 10] (one-hot-encoded predicted labels)

@@ -9,15 +9,15 @@ This network is almost similar to the one with 50 layer used in the original
 paper: "Deep Residual Learning for Image Recognition"
 **********************************************************************************
 """
-from models.AlexNet.loss_ops import cross_entropy_loss
-from AlexNet.ops import *
-from AlexNet.AlexNet import AlexNet
+from loss_ops import cross_entropy_loss
+from ops import *
+from AlexNet import AlexNet
 import numpy as np
 from DataLoader.DataGenerator import DataGenerator
 import os
 
 
-class Siamese(object):
+class Siamese_AlexNet(object):
 
     def __init__(self, sess, conf, hamming_set):
         self.sess = sess

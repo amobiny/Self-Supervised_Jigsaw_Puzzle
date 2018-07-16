@@ -4,7 +4,8 @@ from hamming_set.generate_hamming_set import hamming_set
 from config import args
 import numpy as np
 import os
-from models.Siamese import Siamese
+from models.AlexNet.Siamese import Siamese_AlexNet
+from models.CapsNet.Siamese import Siamese_CapsNet
 
 
 def main(_):
@@ -19,7 +20,7 @@ def main(_):
         print('invalid mode: ', args.mode)
         print("Please input a mode: train, test, or predict")
     else:
-        model = Siamese(tf.Session(), args, HammingSet)
+        model = Siamese_AlexNet(tf.Session(), args, HammingSet)
         if not os.path.exists(args.modeldir+args.run_name):
             os.makedirs(args.modeldir+args.run_name)
         if not os.path.exists(args.logdir+args.run_name):
@@ -34,7 +35,5 @@ def main(_):
 
 if __name__ == '__main__':
     # configure which gpu or cpu to use
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1, 2, 3'
+    os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1, 2'
     tf.app.run()
-
-

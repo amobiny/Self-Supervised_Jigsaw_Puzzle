@@ -11,28 +11,33 @@ Comments: Includes functions for defining the 3D-ResNet layers
 import tensorflow as tf
 
 
-def weight_variable(name, shape):
+def weight_variable(trainable, shape):
     """Create a weight variable with appropriate initialization."""
     initer = tf.truncated_normal_initializer(stddev=0.01)
-    return tf.get_variable('W_' + name, dtype=tf.float32,
-                           shape=shape, initializer=initer)
+    return tf.get_variable('W_',
+                           dtype=tf.float32,
+                           trainable=trainable,
+                           shape=shape,
+                           initializer=initer)
 
 
-def bias_variable(name, shape):
+def bias_variable(trainable, shape):
     """Create a bias variable with appropriate initialization."""
     initial = tf.constant(0., shape=shape, dtype=tf.float32)
-    return tf.get_variable('b_' + name, dtype=tf.float32,
+    return tf.get_variable('b',
+                           dtype=tf.float32,
+                           trainable=trainable,
                            initializer=initial)
 
 
-def conv_2d(inputs, filter_size, stride, num_filters, name,
+def conv_2d(inputs, filter_size, stride, num_filters, name, trainable=True,
             is_train=True, batch_norm=False, add_reg=False, use_relu=True):
     """Create a convolution layer."""
 
     num_inChannel = inputs.get_shape().as_list()[-1]
     with tf.variable_scope(name):
         shape = [filter_size, filter_size, num_inChannel, num_filters]
-        weights = weight_variable(name, shape=shape)
+        weights = weight_variable(trainable, shape=shape)
         tf.summary.histogram('W', weights)
         layer = tf.nn.conv2d(input=inputs,
                              filter=weights,
@@ -41,7 +46,7 @@ def conv_2d(inputs, filter_size, stride, num_filters, name,
         if batch_norm:
             layer = batch_norm_wrapper(layer, is_train)
         else:
-            biases = bias_variable(name, [num_filters])
+            biases = bias_variable(trainable, [num_filters])
             layer += biases
         if use_relu:
             layer = tf.nn.relu(layer)
@@ -59,17 +64,18 @@ def flatten_layer(layer):
     return layer_flat
 
 
-def fc_layer(bottom, out_dim, name, is_train=True, batch_norm=False, add_reg=False, use_relu=True):
+def fc_layer(bottom, out_dim, name, is_train=True, trainable=True,
+             batch_norm=False, add_reg=False, use_relu=True):
     """Create a fully connected layer"""
     in_dim = bottom.get_shape()[1]
     with tf.variable_scope(name):
-        weights = weight_variable(name, shape=[in_dim, out_dim])
+        weights = weight_variable(trainable, shape=[in_dim, out_dim])
         tf.summary.histogram('W', weights)
         layer = tf.matmul(bottom, weights)
         if batch_norm:
             layer = batch_norm_wrapper(layer, is_train)
         else:
-            biases = bias_variable(name, [out_dim])
+            biases = bias_variable(trainable, [out_dim])
             layer += biases
         if use_relu:
             layer = tf.nn.relu(layer)
