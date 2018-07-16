@@ -16,7 +16,7 @@ flags.DEFINE_float('init_lr', 1e-3, 'Initial learning rate')
 flags.DEFINE_float('lr_min', 1e-4, 'Minimum learning rate')
 
 # data
-flags.DEFINE_string('data_path', './prepare_data/COCO_2017_unlabeled.h5', 'Data path')
+flags.DEFINE_string('data_path', '/home/cougarnet.uh.edu/amobiny/Desktop/DATASETS/CIFAR-10/cifar-10.h5', 'Data path')
 flags.DEFINE_boolean('data_augment', True, 'Adds augmentation to data')
 flags.DEFINE_integer('max_angle', 40, 'Maximum rotation angle along each axis; when applying augmentation')
 flags.DEFINE_integer('num_tr', 55000, 'Total number of training images')

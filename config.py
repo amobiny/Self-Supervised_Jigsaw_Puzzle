@@ -24,19 +24,8 @@ flags.DEFINE_integer('height', 64, 'Input height size')
 flags.DEFINE_integer('width', 64, 'Input width size')
 flags.DEFINE_integer('depth', 32, 'Input depth size')
 flags.DEFINE_integer('numChannels', 3, 'Input channel size')
+flags.DEFINE_integer('numClasses', 10, 'Input channel size')
 
-# hamming set
-flags.DEFINE_boolean('generateHammingSet', False, 'Generate a new HammingSet')
-flags.DEFINE_integer('hammingSetSize', 100, 'Hamming set size')
-flags.DEFINE_string('selectionMethod', 'max', 'max or mean')
-flags.DEFINE_string('hammingFileName', 'max_hamming_set_100.h5', 'Name of the file to be saved')
-
-# jigsaw
-flags.DEFINE_integer('numCrops', 9, 'The number of jigsaw-puzzle crops')
-flags.DEFINE_integer('cellSize', 75, 'The dimensions of the jigsaw input')
-flags.DEFINE_integer('tileSize', 64, 'The dimensions of the jigsaw input')
-flags.DEFINE_integer('colorJitter', 2, 'Number of pixels for color jittering')
-flags.DEFINE_integer('cropSize', 225, 'Size of the crop extracted from each input image')
 
 # Directories
 flags.DEFINE_string('run_name', 'run01', 'Run name')
