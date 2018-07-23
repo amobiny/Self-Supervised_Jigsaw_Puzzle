@@ -5,7 +5,7 @@ from keras import layers
 from layers.ops import squash
 
 
-def CapsNet(x, conf):
+def VecCapsNet(x, conf):
     # Layer 1: A 3D conv layer
     conv1 = layers.Conv2D(filters=64, kernel_size=5, strides=1,
                           padding='same', activation='relu', name='conv1')(x)

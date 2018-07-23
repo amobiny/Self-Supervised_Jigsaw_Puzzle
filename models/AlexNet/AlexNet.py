@@ -43,7 +43,7 @@ def AlexNet_target_task(X, keep_prob, num_cls):
     net = conv_2d(net, 3, 1, 256, 'CONV5', trainable=False)
     net = max_pool(net, 3, 2, 'MaxPool3')
     layer_flat = flatten_layer(net)
-    net = fc_layer(layer_flat, 512, 'FC1', trainable=True, use_relu=True)
+    net = fc_layer(layer_flat, 512, 'FC_1', trainable=True, use_relu=True)
     net = dropout(net, keep_prob)
-    net = fc_layer(net, num_cls, 'FC2', trainable=True, use_relu=False)
+    net = fc_layer(net, num_cls, 'FC_2', trainable=True, use_relu=False)
     return net

@@ -2,6 +2,22 @@ import tensorflow as tf
 
 flags = tf.app.flags
 flags.DEFINE_string('mode', 'train', 'train or test')
+flags.DEFINE_string('model', 'matrix_capsule', 'matrix_capsule or vector_capsule or alexnet')
+flags.DEFINE_string('loss_type', 'spread', 'spread or margin or cross_entropy')
+
+# Matrix Capsule architecture
+flags.DEFINE_boolean('use_bias', True, 'Adds bias to init capsules')
+flags.DEFINE_boolean('use_BN', True, 'Adds BN before conv1 layer')
+flags.DEFINE_boolean('add_coords', True, 'Adds capsule coordinations')
+flags.DEFINE_boolean('grad_clip', False, 'Adds gradient clipping to get rid of exploding gradient')
+flags.DEFINE_boolean('L2_reg', True, 'Adds L2-regularization to all the network weights')
+flags.DEFINE_float('lmbda', 5e-04, 'L2-regularization coefficient')
+flags.DEFINE_boolean('add_decoder', False, 'Adds a fully connected decoder and reconstruction loss')
+flags.DEFINE_integer('iter', 1, 'Number of EM-routing iterations')
+flags.DEFINE_integer('A', 32, 'A in Figure 1 of the paper')
+flags.DEFINE_integer('B', 32, 'B in Figure 1 of the paper')
+flags.DEFINE_integer('C', 32, 'C in Figure 1 of the paper')
+flags.DEFINE_integer('D', 32, 'D in Figure 1 of the paper')
 
 # Training logs
 flags.DEFINE_integer('max_epoch', 10000, 'maximum number of training epochs')

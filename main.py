@@ -4,8 +4,11 @@ from hamming_set.generate_hamming_set import hamming_set
 from config import args
 import numpy as np
 import os
-from models.AlexNet.Siamese import Siamese_AlexNet
-from models.CapsNet.Siamese import Siamese_CapsNet
+
+if args.model == 'alexnet':
+    from models.AlexNet.Siamese import Siamese_AlexNet as SiameseNet
+else:
+    from models.CapsNet.Siamese import SiameseCapsNet as SiameseNet
 
 
 def main(_):
@@ -20,7 +23,7 @@ def main(_):
         print('invalid mode: ', args.mode)
         print("Please input a mode: train, test, or predict")
     else:
-        model = Siamese_AlexNet(tf.Session(), args, HammingSet)
+        model = SiameseNet(tf.Session(), args, HammingSet)
         if not os.path.exists(args.modeldir+args.run_name):
             os.makedirs(args.modeldir+args.run_name)
         if not os.path.exists(args.logdir+args.run_name):

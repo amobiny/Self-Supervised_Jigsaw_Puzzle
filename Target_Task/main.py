@@ -27,7 +27,7 @@ def save_summary(summa, step, mode):
 
 input_shape = [None, 225, 225, 3]
 x = tf.placeholder(tf.float32, input_shape, name='x_input')
-y = tf.placeholder(tf.float32, [None, args.numClasses], name='x_input')
+y = tf.placeholder(tf.float32, [None, args.numClasses], name='y_input')
 keep_prob = tf.placeholder(tf.float32)
 
 with tf.variable_scope('Siamese') as scope:
@@ -44,7 +44,8 @@ with tf.name_scope('Loss'):
 
 with tf.name_scope('Optimizer'):
     with tf.name_scope('Learning_rate_decay'):
-        global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0),
+        global_step = tf.get_variable('global_step', [],
+                                      initializer=tf.constant_initializer(0),
                                       trainable=False)
         steps_per_epoch = args.conf.num_tr // args.batchSize
         learning_rate = tf.train.exponential_decay(args.init_lr,
