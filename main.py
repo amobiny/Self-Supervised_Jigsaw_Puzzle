@@ -14,7 +14,7 @@ else:
 def main(_):
     if args.generateHammingSet:
         hamming_set(args.numCrops, args.hammingSetSize,
-                    args.selectionMethod, args.hammingFilePath)
+                    args.selectionMethod, args.newFileName)
 
     h5f = h5py.File('./hamming_set/' + args.hammingFileName, 'r')
     HammingSet = np.array(h5f['max_hamming_set'])

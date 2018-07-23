@@ -1,5 +1,5 @@
 import tensorflow as tf
-from matrix_capsnet_ops.ops import conv_2d, capsules_init, capsule_conv, capsule_fc
+from ops import conv_2d, capsules_init, capsule_conv, capsule_fc
 
 
 class MatrixCapsNet:
@@ -10,7 +10,7 @@ class MatrixCapsNet:
 
     def __call__(self, x):
         # Building network...
-        with tf.variable_scope('CapsNet'):
+        with tf.variable_scope('CapsNet', reuse=tf.AUTO_REUSE):
             net, summary = conv_2d(x, 5, 2, self.conf.A, 'CONV1', add_bias=self.conf.use_bias,
                                    add_reg=self.conf.L2_reg, batch_norm=self.conf.use_BN, is_train=self.is_train)
             # [?, 14, 14, A]
@@ -35,9 +35,10 @@ class MatrixCapsNet:
             for summary in summary_list:
                 self.summary_list.append(summary)
 
-            out_pose, out_act, summary_list = capsule_fc(pose, act, OUT=self.conf.num_cls, add_reg=self.conf.L2_reg,
+            out_pose, out_act, summary_list = capsule_fc(pose, act, OUT=self.conf.E, add_reg=self.conf.L2_reg,
                                                          iters=self.conf.iter, std=1, add_coord=self.conf.add_coords,
-                                                         name='capsule_fc')
-            # [?, num_cls, 4, 4], [?, num_cls]
-
+                                                         name='capsule_fc1')
+            # [?, E, 4, 4], [?, E]
+            out_pose = out_pose[:, tf.newaxis, :, :, :]
+            out_act = out_act[:, tf.newaxis, :]
             return out_act, out_pose, summary_list

@@ -2,10 +2,9 @@ import tensorflow as tf
 from layers.Conv_Caps import ConvCapsuleLayer
 from layers.FC_Caps import FCCapsuleLayer
 from keras import layers
-from layers.ops import squash
 
 
-def VecCapsNet(x, conf):
+def VectorCapsNet(x, conf):
     # Layer 1: A 3D conv layer
     conv1 = layers.Conv2D(filters=64, kernel_size=5, strides=1,
                           padding='same', activation='relu', name='conv1')(x)

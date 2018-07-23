@@ -3,7 +3,7 @@ import keras.backend as K
 import tensorflow as tf
 import numpy as np
 from keras.utils.conv_utils import conv_output_length
-from layers.ops import update_routing
+from ops import update_routing
 
 
 class ConvCapsuleLayer(layers.Layer):

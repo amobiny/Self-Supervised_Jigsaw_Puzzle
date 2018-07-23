@@ -9,21 +9,21 @@ This network is almost similar to the one with 50 layer used in the original
 paper: "Deep Residual Learning for Image Recognition"
 **********************************************************************************
 """
-from models.AlexNet.loss_ops import cross_entropy_loss
-from vector_capsnet_ops.ops import *
 import numpy as np
 from DataLoader.DataGenerator import DataGenerator
 import os
 import tensorflow as tf
 from models.CapsNet.loss_ops import margin_loss, spread_loss
+from models.CapsNet.matrix_capsnet.ops import capsule_fc
 
 
 class SiameseCapsNet(object):
     def __init__(self, sess, conf, hamming_set):
         self.sess = sess
         self.conf = conf
+        self.summary_list = []
         self.HammingSet = hamming_set
-        self.input_shape = [None, conf.tileSize, conf.tileSize, conf.numChannels, conf.numCrops]
+        self.input_shape = [conf.batchSize, conf.tileSize, conf.tileSize, conf.numChannels, conf.numCrops]
         self.is_train = tf.Variable(True, trainable=False, dtype=tf.bool)
         self.global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0),
                                            trainable=False)
@@ -40,25 +40,33 @@ class SiameseCapsNet(object):
     def inference(self):
         # Build the Network
         if self.conf.model == 'matrix_capsule':
-            from MatrixCapsNet import MatrixCapsNet as Network
+            from models.CapsNet.matrix_capsnet.MatrixCapsNet import MatrixCapsNet
+            Network = MatrixCapsNet(self.conf, self.is_train)
         elif self.conf.model == 'vector_capsule':
-            from VectorCapsNet import VecCapsNet as Network
-        with tf.variable_scope('Siamese') as scope:
-            Siamese_out = []
+            from models.CapsNet.vector_capsnet.VectorCapsNet import VectorCapsNet
+            Network = VectorCapsNet(self.conf, self.is_train)
+
+        with tf.variable_scope('Siamese', reuse=tf.AUTO_REUSE):
+            act_list = []
+            pose_list = []
             x = tf.unstack(self.x, axis=-1)
             for i in range(self.conf.numCrops):
-                Siamese_out.append(Network(x[i], self.is_train))
-                if i < self.conf.numCrops:
-                    scope.reuse_variables()
-        net = tf.concat(Siamese_out, axis=1)
-        net = fc_layer(net, 4096, 'FC2', is_train=self.is_train, batch_norm=True, use_relu=True)
-        net = dropout(net, self.keep_prob)
-        self.logits = fc_layer(net, self.conf.hammingSetSize, 'FC3',
-                               is_train=self.is_train, batch_norm=True, use_relu=False)
+                act, pose, summary_list = Network(x[i])
+                act_list.append(act)
+                pose_list.append(pose)
+                self.summary_list.append(summary_list)
+        dim = np.sqrt(self.conf.numCrops).astype(int)
+        act = tf.reshape(tf.concat(act_list, axis=1), [self.conf.batchSize, dim, dim, -1])
+        pose = tf.reshape(tf.concat(pose_list, axis=1), [self.conf.batchSize, dim, dim, -1, 4, 4])
+        out_pose, self.out_act, summary_list = capsule_fc(pose, act, OUT=self.conf.hammingSetSize,
+                                                          add_reg=self.conf.L2_reg,
+                                                          iters=self.conf.iter, std=1, add_coord=False,
+                                                          name='capsule_fc2')
+        self.y_pred = tf.to_int32(tf.argmax(self.out_act, axis=1))
 
     def accuracy_func(self):
         with tf.name_scope('Accuracy'):
-            correct_prediction = tf.equal(tf.argmax(self.logits, 1), tf.argmax(self.y, 1))
+            correct_prediction = tf.equal(tf.to_int32(tf.argmax(self.y, axis=1)), self.y_pred)
             accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
             self.mean_accuracy, self.mean_accuracy_op = tf.metrics.mean(accuracy)
 
@@ -69,7 +77,7 @@ class SiameseCapsNet(object):
                 self.summary_list.append(tf.summary.scalar('margin', loss))
             elif self.conf.loss_type == 'spread':
                 self.generate_margin()
-                loss = spread_loss(self.y, self.act, self.margin, 'spread_loss')
+                loss = spread_loss(self.y, self.out_act, self.margin, 'spread_loss')
                 self.summary_list.append(tf.summary.scalar('spread_loss', loss))
             if self.conf.L2_reg:
                 with tf.name_scope('l2_loss'):
@@ -77,7 +85,7 @@ class SiameseCapsNet(object):
                                                                         for v in tf.get_collection('weights')]))
                     loss += l2_loss
                 self.summary_list.append(tf.summary.scalar('l2_loss', l2_loss))
-            if self.conf.add_recon_loss or self.conf.add_decoder:
+            if self.conf.add_decoder:
                 with tf.variable_scope('Reconstruction_Loss'):
                     orgin = tf.reshape(self.x, shape=(-1, self.conf.height * self.conf.width * self.conf.channel))
                     squared = tf.square(self.decoder_output - orgin)
@@ -90,14 +98,14 @@ class SiameseCapsNet(object):
                 self.total_loss = loss
             self.mean_loss, self.mean_loss_op = tf.metrics.mean(self.total_loss)
 
-            if self.conf.add_recon_loss or self.conf.add_decoder:
+            if self.conf.add_decoder:
                 self.summary_list.append(tf.summary.image('reconstructed', recon_img))
                 self.summary_list.append(tf.summary.image('original', self.x))
 
     def generate_margin(self):
         # margin schedule
         # margin increase from 0.2 to 0.9 after margin_schedule_epoch_achieve_max
-        NUM_STEPS_PER_EPOCH = int(55000 / self.conf.batch_size)
+        NUM_STEPS_PER_EPOCH = int(self.conf.N / self.conf.batchSize)
         margin_schedule_epoch_achieve_max = 10.0
         self.margin = tf.train.piecewise_constant(tf.cast(self.global_step, dtype=tf.int32),
                                                   boundaries=[int(NUM_STEPS_PER_EPOCH *
@@ -188,7 +196,7 @@ class SiameseCapsNet(object):
                                                       self.mean_accuracy_op,
                                                       self.merged_summary], feed_dict=feed_dict)
                     loss, acc = self.sess.run([self.mean_loss, self.mean_accuracy])
-                    global_step = (epoch-1) * self.data_reader.numTrainBatch + train_step
+                    global_step = (epoch - 1) * self.data_reader.numTrainBatch + train_step
                     self.save_summary(summary, global_step, mode='train')
                     print('step: {0:<6}, train_loss= {1:.4f}, train_acc={2:.01%}'.format(train_step, loss, acc))
                 else:
@@ -236,11 +244,11 @@ class SiameseCapsNet(object):
         print('*' * 50)
         print('----> Saving the model after epoch #{0}'.format(epoch))
         print('*' * 50)
-        checkpoint_path = os.path.join(self.conf.modeldir+self.conf.run_name, self.conf.model_name)
+        checkpoint_path = os.path.join(self.conf.modeldir + self.conf.run_name, self.conf.model_name)
         self.saver.save(self.sess, checkpoint_path, global_step=epoch)
 
     def reload(self, epoch):
-        checkpoint_path = os.path.join(self.conf.modeldir+self.conf.run_name, self.conf.model_name)
+        checkpoint_path = os.path.join(self.conf.modeldir + self.conf.run_name, self.conf.model_name)
         model_path = checkpoint_path + '-' + str(epoch)
         if not os.path.exists(model_path + '.meta'):
             print('----> No such checkpoint found', model_path)

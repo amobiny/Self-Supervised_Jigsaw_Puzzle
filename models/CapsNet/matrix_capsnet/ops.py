@@ -1,5 +1,5 @@
 import tensorflow as tf
-from models.utils.EM import matrix_capsules_em_routing
+from EM import matrix_capsules_em_routing
 import numpy as np
 
 
@@ -182,7 +182,7 @@ def capsule_fc(input_pose, input_act, OUT, iters, std=0.01, add_coord=True, add_
 
         pose, out_act = matrix_capsules_em_routing(votes, i_act, beta_v, beta_a, iters, name='EM')
         # [N, O, PH x PW], [N, O]
-        pose = tf.reshape(pose, [votes_shape[0], -1])
+        pose = tf.reshape(pose, [votes_shape[0], votes_shape[4], votes_shape[5], votes_shape[6]])
         # [N, O, PH, PW]
         a_summary = tf.summary.histogram('activations', out_act)
         sum_list.append(a_summary)
