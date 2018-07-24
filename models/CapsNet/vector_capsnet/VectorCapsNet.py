@@ -32,38 +32,39 @@ class VectorCapsNet:
             sec_cap_reshaped = layers.Reshape((H.value * W.value * D.value, dim.value))(primary_caps)
 
             # Layer 4: Fully-connected Capsule
-            self.digit_caps = FCCapsuleLayer(num_caps=self.conf.num_cls, caps_dim=self.conf.digit_caps_dim,
+            self.digit_caps = FCCapsuleLayer(num_caps=self.conf.num_digit_caps, caps_dim=self.conf.digit_caps_dim,
                                              routings=3, name='secondarycaps')(sec_cap_reshaped)
-            # [?, 10, 16]
-
-    def mask(self):
-        with tf.variable_scope('Masking'):
+            # [?, num_digit_caps, digit_caps_dim]
             epsilon = 1e-9
             self.v_length = tf.squeeze(tf.sqrt(tf.reduce_sum(tf.square(self.digit_caps),
-                                                             axis=2, keep_dims=True) + epsilon),
-                                       axis=-1)
+                                                             axis=2, keep_dims=True) + epsilon), axis=-1)
             # [?, 10]
-            self.y_pred = tf.to_int32(tf.argmax(self.v_length, axis=1))
-            # [?] (predicted labels)
-            y_pred_ohe = tf.one_hot(self.y_pred, depth=self.conf.num_cls)
-            # [?, 10] (one-hot-encoded predicted labels)
 
-            reconst_targets = tf.cond(self.is_train,    # condition
-                                      lambda: self.y,   # if True (Training)
-                                      lambda: y_pred_ohe,  # if False (Test)
-                                      name="reconstruction_targets")
-            # [?, 10]
-            self.output_masked = tf.multiply(self.digit_caps, tf.expand_dims(reconst_targets, -1))
-            # [?, 10, 16]
+        return self.digit_caps
 
-    def decoder(self):
-        with tf.variable_scope('Decoder'):
-            decoder_input = tf.reshape(self.output_masked, [-1, self.conf.num_cls * self.conf.digit_caps_dim])
-            # [?, 160]
-            fc1 = tf.layers.dense(decoder_input, self.conf.h1, activation=tf.nn.relu, name="FC1")
-            # [?, 512]
-            fc2 = tf.layers.dense(fc1, self.conf.h2, activation=tf.nn.relu, name="FC2")
-            # [?, 1024]
-            self.decoder_output = tf.layers.dense(fc2, self.conf.width * self.conf.height,
-                                                  activation=tf.nn.sigmoid, name="FC3")
-            # [?, 784]
+    # def mask(self):
+    #     with tf.variable_scope('Masking'):
+    #         self.y_pred = tf.to_int32(tf.argmax(self.v_length, axis=1))
+    #         # [?] (predicted labels)
+    #         y_pred_ohe = tf.one_hot(self.y_pred, depth=self.conf.hammingSetSize)
+    #         # [?, 10] (one-hot-encoded predicted labels)
+    #
+    #         reconst_targets = tf.cond(self.is_train,  # condition
+    #                                   lambda: self.y,  # if True (Training)
+    #                                   lambda: y_pred_ohe,  # if False (Test)
+    #                                   name="reconstruction_targets")
+    #         # [?, 10]
+    #         self.output_masked = tf.multiply(self.digit_caps, tf.expand_dims(reconst_targets, -1))
+    #         # [?, 10, 16]
+    #
+    # def decoder(self):
+    #     with tf.variable_scope('Decoder'):
+    #         decoder_input = tf.reshape(self.output_masked, [-1, self.conf.num_cls * self.conf.digit_caps_dim])
+    #         # [?, 160]
+    #         fc1 = tf.layers.dense(decoder_input, self.conf.h1, activation=tf.nn.relu, name="FC1")
+    #         # [?, 512]
+    #         fc2 = tf.layers.dense(fc1, self.conf.h2, activation=tf.nn.relu, name="FC2")
+    #         # [?, 1024]
+    #         self.decoder_output = tf.layers.dense(fc2, self.conf.width * self.conf.height,
+    #                                               activation=tf.nn.sigmoid, name="FC3")
+    #         # [?, 784]

@@ -50,13 +50,18 @@ class SiameseCapsNet(object):
                     act, pose, summary_list = Network(x[i])
                     act_list.append(act)
                     pose_list.append(pose)
-                self.summary_list.append(summary_list)
-                dim = np.sqrt(self.conf.numCrops).astype(int)
-                act = tf.reshape(tf.concat(act_list, axis=1), [self.conf.batchSize, dim, dim, -1])
-                pose = tf.reshape(tf.concat(pose_list, axis=1), [self.conf.batchSize, dim, dim, -1, 4, 4])
+                # self.summary_list.append(summary_list)
+                if self.conf.fc:
+                    dim = np.sqrt(self.conf.numCrops).astype(int)
+                    act = tf.reshape(tf.concat(act_list, axis=1), [self.conf.batchSize, dim, dim, -1])
+                    pose = tf.reshape(tf.concat(pose_list, axis=1), [self.conf.batchSize, dim, dim, -1, 4, 4])
+                else:
+                    act = tf.concat(act_list, axis=-1)
+                    pose = tf.concat(pose_list, axis=3)
                 out_pose, self.out_act, summary_list = capsule_fc(pose, act, OUT=self.conf.hammingSetSize,
                                                                   add_reg=self.conf.L2_reg,
-                                                                  iters=self.conf.iter, std=1, add_coord=False,
+                                                                  iters=self.conf.iter, std=1,
+                                                                  add_coord=self.conf.add_coords,
                                                                   name='capsule_fc2')
             self.y_pred = tf.to_int32(tf.argmax(self.out_act, axis=1))
         elif self.conf.model == 'vector_capsule':
@@ -65,7 +70,7 @@ class SiameseCapsNet(object):
             with tf.variable_scope('Siamese', reuse=tf.AUTO_REUSE):
                 x = tf.unstack(self.x, axis=-1)
                 for i in range(self.conf.numCrops):
-                    act, pose, summary_list = Network(x[i])
+                    self.y_pred, self.v_length, self.decoder_output = Network(x[i])
 
     def accuracy_func(self):
         with tf.name_scope('Accuracy'):

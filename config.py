@@ -6,6 +6,34 @@ flags = tf.app.flags
 flags.DEFINE_string('mode', 'train', 'train or test')
 flags.DEFINE_string('model', 'matrix_capsule', 'matrix_capsule or vector_capsule or alexnet')
 flags.DEFINE_string('loss_type', 'spread', 'spread or margin or cross_entropy')
+flags.DEFINE_boolean('add_decoder', False, 'Adds a fully connected decoder and reconstruction loss')
+flags.DEFINE_float('alpha', 0.0005, 'Regularization coefficient to scale down the reconstruction loss')
+flags.DEFINE_boolean('grad_clip', False, 'Adds gradient clipping to get rid of exploding gradient')
+flags.DEFINE_boolean('L2_reg', False, 'Adds L2-regularization to all the network weights')
+flags.DEFINE_float('lmbda', 5e-04, 'L2-regularization coefficient')
+flags.DEFINE_integer('iter', 1, 'Number of EM-routing iterations')
+
+# Matrix Capsule architecture
+flags.DEFINE_boolean('fc', False, 'Adds a fully connected layer at the end of each network')
+flags.DEFINE_boolean('use_bias', True, 'Adds bias to init capsules')
+flags.DEFINE_boolean('use_BN', False, 'Adds BN before conv1 layer')
+flags.DEFINE_boolean('add_coords', True, 'Adds capsule coordinations')
+flags.DEFINE_integer('A', 32, 'A in Figure 1 of the paper')
+flags.DEFINE_integer('B', 8, 'B in Figure 1 of the paper')
+flags.DEFINE_integer('C', 16, 'C in Figure 1 of the paper')
+flags.DEFINE_integer('D', 16, 'D in Figure 1 of the paper')
+flags.DEFINE_integer('E', 16, 'E in Figure 1 of the paper')
+
+# Vector Capsule architecture
+flags.DEFINE_integer('prim_caps_dim', 8, 'Dimension of the PrimaryCaps')
+flags.DEFINE_integer('digit_caps_dim', 16, 'Dimension of the DigitCaps')
+flags.DEFINE_integer('num_digit_caps', 20, 'Number of the DigitCaps')
+flags.DEFINE_integer('h1', 512, 'Number of hidden units of the first FC layer of the reconstruction network')
+flags.DEFINE_integer('h2', 1024, 'Number of hidden units of the second FC layer of the reconstruction network')
+# For margin loss
+flags.DEFINE_float('m_plus', 0.9, 'm+ parameter')
+flags.DEFINE_float('m_minus', 0.1, 'm- parameter')
+flags.DEFINE_float('lambda_val', 0.5, 'Down-weighting parameter for the absent class')
 
 # hamming set
 flags.DEFINE_boolean('generateHammingSet', False, 'Generate a new HammingSet')
@@ -19,21 +47,6 @@ flags.DEFINE_integer('cellSize', 75, 'The dimensions of the jigsaw input')
 flags.DEFINE_integer('tileSize', 64, 'The dimensions of the jigsaw input')
 flags.DEFINE_integer('colorJitter', 2, 'Number of pixels for color jittering')
 flags.DEFINE_integer('cropSize', 225, 'Size of the crop extracted from each input image')
-
-# Matrix Capsule architecture
-flags.DEFINE_boolean('use_bias', True, 'Adds bias to init capsules')
-flags.DEFINE_boolean('use_BN', False, 'Adds BN before conv1 layer')
-flags.DEFINE_boolean('add_coords', True, 'Adds capsule coordinations')
-flags.DEFINE_boolean('grad_clip', False, 'Adds gradient clipping to get rid of exploding gradient')
-flags.DEFINE_boolean('L2_reg', False, 'Adds L2-regularization to all the network weights')
-flags.DEFINE_float('lmbda', 5e-04, 'L2-regularization coefficient')
-flags.DEFINE_boolean('add_decoder', False, 'Adds a fully connected decoder and reconstruction loss')
-flags.DEFINE_integer('iter', 1, 'Number of EM-routing iterations')
-flags.DEFINE_integer('A', 32, 'A in Figure 1 of the paper')
-flags.DEFINE_integer('B', 8, 'B in Figure 1 of the paper')
-flags.DEFINE_integer('C', 16, 'C in Figure 1 of the paper')
-flags.DEFINE_integer('D', 16, 'D in Figure 1 of the paper')
-flags.DEFINE_integer('E', 16, 'E in Figure 1 of the paper')
 
 # Training logs
 flags.DEFINE_integer('max_epoch', 10000, 'maximum number of training epochs')
