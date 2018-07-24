@@ -42,27 +42,30 @@ class SiameseCapsNet(object):
         if self.conf.model == 'matrix_capsule':
             from models.CapsNet.matrix_capsnet.MatrixCapsNet import MatrixCapsNet
             Network = MatrixCapsNet(self.conf, self.is_train)
+            with tf.variable_scope('Siamese', reuse=tf.AUTO_REUSE):
+                act_list = []
+                pose_list = []
+                x = tf.unstack(self.x, axis=-1)
+                for i in range(self.conf.numCrops):
+                    act, pose, summary_list = Network(x[i])
+                    act_list.append(act)
+                    pose_list.append(pose)
+                self.summary_list.append(summary_list)
+                dim = np.sqrt(self.conf.numCrops).astype(int)
+                act = tf.reshape(tf.concat(act_list, axis=1), [self.conf.batchSize, dim, dim, -1])
+                pose = tf.reshape(tf.concat(pose_list, axis=1), [self.conf.batchSize, dim, dim, -1, 4, 4])
+                out_pose, self.out_act, summary_list = capsule_fc(pose, act, OUT=self.conf.hammingSetSize,
+                                                                  add_reg=self.conf.L2_reg,
+                                                                  iters=self.conf.iter, std=1, add_coord=False,
+                                                                  name='capsule_fc2')
+            self.y_pred = tf.to_int32(tf.argmax(self.out_act, axis=1))
         elif self.conf.model == 'vector_capsule':
             from models.CapsNet.vector_capsnet.VectorCapsNet import VectorCapsNet
             Network = VectorCapsNet(self.conf, self.is_train)
-
-        with tf.variable_scope('Siamese', reuse=tf.AUTO_REUSE):
-            act_list = []
-            pose_list = []
-            x = tf.unstack(self.x, axis=-1)
-            for i in range(self.conf.numCrops):
-                act, pose, summary_list = Network(x[i])
-                act_list.append(act)
-                pose_list.append(pose)
-                self.summary_list.append(summary_list)
-        dim = np.sqrt(self.conf.numCrops).astype(int)
-        act = tf.reshape(tf.concat(act_list, axis=1), [self.conf.batchSize, dim, dim, -1])
-        pose = tf.reshape(tf.concat(pose_list, axis=1), [self.conf.batchSize, dim, dim, -1, 4, 4])
-        out_pose, self.out_act, summary_list = capsule_fc(pose, act, OUT=self.conf.hammingSetSize,
-                                                          add_reg=self.conf.L2_reg,
-                                                          iters=self.conf.iter, std=1, add_coord=False,
-                                                          name='capsule_fc2')
-        self.y_pred = tf.to_int32(tf.argmax(self.out_act, axis=1))
+            with tf.variable_scope('Siamese', reuse=tf.AUTO_REUSE):
+                x = tf.unstack(self.x, axis=-1)
+                for i in range(self.conf.numCrops):
+                    act, pose, summary_list = Network(x[i])
 
     def accuracy_func(self):
         with tf.name_scope('Accuracy'):
@@ -105,10 +108,10 @@ class SiameseCapsNet(object):
     def generate_margin(self):
         # margin schedule
         # margin increase from 0.2 to 0.9 after margin_schedule_epoch_achieve_max
-        NUM_STEPS_PER_EPOCH = int(self.conf.N / self.conf.batchSize)
+        self.NUM_STEPS_PER_EPOCH = int(self.conf.N / self.conf.batchSize)
         margin_schedule_epoch_achieve_max = 10.0
         self.margin = tf.train.piecewise_constant(tf.cast(self.global_step, dtype=tf.int32),
-                                                  boundaries=[int(NUM_STEPS_PER_EPOCH *
+                                                  boundaries=[int(self.NUM_STEPS_PER_EPOCH *
                                                                   margin_schedule_epoch_achieve_max * x / 7)
                                                               for x in xrange(1, 8)],
                                                   values=[x / 10.0 for x in range(2, 10)])
@@ -121,8 +124,8 @@ class SiameseCapsNet(object):
             with tf.name_scope('Learning_rate_decay'):
                 learning_rate = tf.train.exponential_decay(self.conf.init_lr,
                                                            self.global_step,
-                                                           decay_steps=5500,
-                                                           decay_rate=0.95,
+                                                           decay_steps=self.NUM_STEPS_PER_EPOCH,
+                                                           decay_rate=0.9,
                                                            staircase=True)
                 self.learning_rate = tf.maximum(learning_rate, self.conf.lr_min)
             self.summary_list.append(tf.summary.scalar('learning_rate', self.learning_rate))
@@ -156,11 +159,8 @@ class SiameseCapsNet(object):
         print('*' * 50)
 
     def configure_summary(self):
-        # recon_img = tf.reshape(self.decoder_output, shape=(-1, self.conf.height, self.conf.width, self.conf.channel))
         summary_list = [tf.summary.scalar('Loss/total_loss', self.mean_loss),
-                        # tf.summary.image('original', self.x),
-                        # tf.summary.image('reconstructed', recon_img),
-                        tf.summary.scalar('Accuracy/average_accuracy', self.mean_accuracy)]
+                        tf.summary.scalar('Accuracy/average_accuracy', self.mean_accuracy)] + self.summary_list
         self.merged_summary = tf.summary.merge(summary_list)
 
     def save_summary(self, summary, step, mode):
@@ -198,7 +198,7 @@ class SiameseCapsNet(object):
                     loss, acc = self.sess.run([self.mean_loss, self.mean_accuracy])
                     global_step = (epoch - 1) * self.data_reader.numTrainBatch + train_step
                     self.save_summary(summary, global_step, mode='train')
-                    print('step: {0:<6}, train_loss= {1:.4f}, train_acc={2:.01%}'.format(train_step, loss, acc))
+                    print('step: {0:<6}, train_loss= {1:.4f}, train_acc={2:.2f}%'.format(train_step, loss, acc*100))
                 else:
                     self.sess.run([self.train_op, self.mean_loss_op, self.mean_accuracy_op], feed_dict=feed_dict)
             self.evaluate(epoch)

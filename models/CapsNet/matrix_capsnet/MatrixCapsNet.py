@@ -36,9 +36,13 @@ class MatrixCapsNet:
                 self.summary_list.append(summary)
 
             out_pose, out_act, summary_list = capsule_fc(pose, act, OUT=self.conf.E, add_reg=self.conf.L2_reg,
-                                                         iters=self.conf.iter, std=1, add_coord=self.conf.add_coords,
+                                                         iters=self.conf.iter, std=1,
+                                                         add_coord=self.conf.add_coords,
                                                          name='capsule_fc1')
             # [?, E, 4, 4], [?, E]
+            for summary in summary_list:
+                self.summary_list.append(summary)
+
             out_pose = out_pose[:, tf.newaxis, :, :, :]
             out_act = out_act[:, tf.newaxis, :]
-            return out_act, out_pose, summary_list
+            return out_act, out_pose, self.summary_list

@@ -14,9 +14,9 @@ else:
 def main(_):
     if args.generateHammingSet:
         hamming_set(args.numCrops, args.hammingSetSize,
-                    args.selectionMethod, args.newFileName)
+                    args.selectionMethod, args.hammingFileName)
 
-    h5f = h5py.File('./hamming_set/' + args.hammingFileName, 'r')
+    h5f = h5py.File('./hamming_set/'+args.hammingFileName+str(args.hammingSetSize)+'.h5', 'r')
     HammingSet = np.array(h5f['max_hamming_set'])
     h5f.close()
     if args.mode not in ['train', 'test', 'predict']:
@@ -38,5 +38,5 @@ def main(_):
 
 if __name__ == '__main__':
     # configure which gpu or cpu to use
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1, 2'
+    # os.environ['CUDA_VISIBLE_DEVICES'] = '0, 1, 2'
     tf.app.run()
