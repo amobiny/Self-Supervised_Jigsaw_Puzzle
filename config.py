@@ -9,14 +9,14 @@ flags.DEFINE_string('loss_type', 'spread', 'spread or margin or cross_entropy')
 flags.DEFINE_boolean('add_decoder', False, 'Adds a fully connected decoder and reconstruction loss')
 flags.DEFINE_float('alpha', 0.0005, 'Regularization coefficient to scale down the reconstruction loss')
 flags.DEFINE_boolean('grad_clip', False, 'Adds gradient clipping to get rid of exploding gradient')
-flags.DEFINE_boolean('L2_reg', False, 'Adds L2-regularization to all the network weights')
+flags.DEFINE_boolean('L2_reg', True, 'Adds L2-regularization to all the network weights')
 flags.DEFINE_float('lmbda', 5e-04, 'L2-regularization coefficient')
 flags.DEFINE_integer('iter', 1, 'Number of EM-routing iterations')
 
 # Matrix Capsule architecture
 flags.DEFINE_boolean('fc', False, 'Adds a fully connected layer at the end of each network')
 flags.DEFINE_boolean('use_bias', True, 'Adds bias to init capsules')
-flags.DEFINE_boolean('use_BN', False, 'Adds BN before conv1 layer')
+flags.DEFINE_boolean('use_BN', True, 'Adds BN before conv1 layer')
 flags.DEFINE_boolean('add_coords', True, 'Adds capsule coordinations')
 flags.DEFINE_integer('A', 32, 'A in Figure 1 of the paper')
 flags.DEFINE_integer('B', 8, 'B in Figure 1 of the paper')
@@ -37,7 +37,7 @@ flags.DEFINE_float('lambda_val', 0.5, 'Down-weighting parameter for the absent c
 
 # hamming set
 flags.DEFINE_boolean('generateHammingSet', False, 'Generate a new HammingSet')
-flags.DEFINE_integer('hammingSetSize', 10, 'Hamming set size')
+flags.DEFINE_integer('hammingSetSize', 50, 'Hamming set size')
 flags.DEFINE_string('selectionMethod', 'max', 'max or mean')
 flags.DEFINE_string('hammingFileName', 'max_hamming_set_', 'Name of the file to be saved')
 

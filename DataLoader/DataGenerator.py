@@ -31,6 +31,9 @@ class DataGenerator:
         mean = h5f['train_mean'][:].astype(np.float32)
         std = h5f['train_std'][:].astype(np.float32)
         h5f.close()
+        if self.numChannels == 1:
+            mean = np.expand_dims(mean, axis=-1)
+            std = np.expand_dims(std, axis=-1)
         return mean, std
 
     def batch_counter(self):
@@ -75,6 +78,8 @@ class DataGenerator:
             h5f = h5py.File(self.data_path, 'r')
             x = h5f['train_img'][self.batchIndexTrain * self.batchSize:(self.batchIndexTrain + 1) * self.batchSize, ...]
             h5f.close()
+            if self.numChannels == 1:
+                x = np.expand_dims(x, axis=-1)
             X, y = self.__data_generation_normalize(x.astype(np.float32))
             self.batchIndexTrain += 1  # Increment the batch index
             if self.batchIndexTrain == self.numTrainBatch:
@@ -83,6 +88,8 @@ class DataGenerator:
             h5f = h5py.File(self.data_path, 'r')
             x = h5f['val_img'][self.batchIndexVal * self.batchSize:(self.batchIndexVal + 1) * self.batchSize, ...]
             h5f.close()
+            if self.numChannels == 1:
+                x = np.expand_dims(x, axis=-1)
             X, y = self.__data_generation_normalize(x.astype(np.float32))
             self.batchIndexVal += 1  # Increment the batch index
             if self.batchIndexVal == self.numValBatch:
@@ -91,6 +98,8 @@ class DataGenerator:
             h5f = h5py.File(self.data_path, 'r')
             x = h5f['test_img'][self.batchIndexTest * self.batchSize:(self.batchIndexTest + 1) * self.batchSize, ...]
             h5f.close()
+            if self.numChannels == 1:
+                x = np.expand_dims(x, axis=-1)
             X, y = self.__data_generation_normalize(x.astype(np.float32))
             self.batchIndexTest += 1  # Increment the batch index
             if self.batchIndexTest == self.numTestBatch:
@@ -118,21 +127,26 @@ class DataGenerator:
         6    7    8
         """
         # Jitter the colour channel
-        image = self.color_channel_jitter(image)
+        # image = self.color_channel_jitter(image)
 
         y_dim, x_dim = image.shape[:2]
         # Have the x & y coordinate of the crop
-        crop_x = random.randrange(x_dim - self.cropSize)
-        crop_y = random.randrange(y_dim - self.cropSize)
+        if x_dim != self.cropSize:
+            crop_x = random.randrange(x_dim - self.cropSize)
+            crop_y = random.randrange(y_dim - self.cropSize)
+        else:
+            crop_x, crop_y = 0, 0
+
         # Select which image ordering we'll use from the maximum hamming set
         perm_index = random.randrange(self.numClasses)
         final_crops = np.zeros((self.tileSize, self.tileSize, self.numChannels, self.numCrops), dtype=np.float32)
-        for row in range(3):
-            for col in range(3):
+        n_crops = int(np.sqrt(self.numCrops))
+        for row in range(n_crops):
+            for col in range(n_crops):
                 x_start = crop_x + col * self.cellSize + random.randrange(self.cellSize - self.tileSize)
                 y_start = crop_y + row * self.cellSize + random.randrange(self.cellSize - self.tileSize)
                 # Put the crop in the list of pieces randomly according to the number picked
-                final_crops[:, :, :, self.maxHammingSet[perm_index, row * 3 + col]] = \
+                final_crops[:, :, :, self.maxHammingSet[perm_index, row * n_crops + col]] = \
                     image[y_start:y_start + self.tileSize, x_start:x_start + self.tileSize, :]
         return final_crops, perm_index
 
