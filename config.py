@@ -4,17 +4,17 @@ flags = tf.app.flags
 
 # General network setup
 flags.DEFINE_string('mode', 'train', 'train or test')
-flags.DEFINE_string('model', 'matrix_capsule', 'matrix_capsule or vector_capsule or alexnet')
-flags.DEFINE_string('loss_type', 'spread', 'spread or margin or cross_entropy')
+flags.DEFINE_string('model', 'vector_capsule', 'matrix_capsule or vector_capsule or alexnet')
+flags.DEFINE_string('loss_type', 'margin', 'spread or margin or cross_entropy')
 flags.DEFINE_boolean('add_decoder', False, 'Adds a fully connected decoder and reconstruction loss')
 flags.DEFINE_float('alpha', 0.0005, 'Regularization coefficient to scale down the reconstruction loss')
 flags.DEFINE_boolean('grad_clip', False, 'Adds gradient clipping to get rid of exploding gradient')
 flags.DEFINE_boolean('L2_reg', True, 'Adds L2-regularization to all the network weights')
 flags.DEFINE_float('lmbda', 5e-04, 'L2-regularization coefficient')
 flags.DEFINE_integer('iter', 1, 'Number of EM-routing iterations')
+flags.DEFINE_boolean('fc', False, 'Adds a fully connected layer at the end of each network')
 
 # Matrix Capsule architecture
-flags.DEFINE_boolean('fc', False, 'Adds a fully connected layer at the end of each network')
 flags.DEFINE_boolean('use_bias', True, 'Adds bias to init capsules')
 flags.DEFINE_boolean('use_BN', True, 'Adds BN before conv1 layer')
 flags.DEFINE_boolean('add_coords', True, 'Adds capsule coordinations')
@@ -25,9 +25,9 @@ flags.DEFINE_integer('D', 16, 'D in Figure 1 of the paper')
 flags.DEFINE_integer('E', 16, 'E in Figure 1 of the paper')
 
 # Vector Capsule architecture
-flags.DEFINE_integer('prim_caps_dim', 8, 'Dimension of the PrimaryCaps')
-flags.DEFINE_integer('digit_caps_dim', 16, 'Dimension of the DigitCaps')
-flags.DEFINE_integer('num_digit_caps', 20, 'Number of the DigitCaps')
+flags.DEFINE_integer('num_fc_caps', 20, 'Number of caps of the fc layer at the end of each network')
+flags.DEFINE_integer('fc_caps_dim', 16, 'Dimension of caps of the fc layer at the end of each network')
+flags.DEFINE_integer('out_caps_dim', 16, 'Dimension of the output capsules')
 flags.DEFINE_integer('h1', 512, 'Number of hidden units of the first FC layer of the reconstruction network')
 flags.DEFINE_integer('h2', 1024, 'Number of hidden units of the second FC layer of the reconstruction network')
 # For margin loss
@@ -37,7 +37,7 @@ flags.DEFINE_float('lambda_val', 0.5, 'Down-weighting parameter for the absent c
 
 # hamming set
 flags.DEFINE_boolean('generateHammingSet', False, 'Generate a new HammingSet')
-flags.DEFINE_integer('hammingSetSize', 50, 'Hamming set size')
+flags.DEFINE_integer('hammingSetSize', 100, 'Hamming set size')
 flags.DEFINE_string('selectionMethod', 'max', 'max or mean')
 flags.DEFINE_string('hammingFileName', 'max_hamming_set_', 'Name of the file to be saved')
 

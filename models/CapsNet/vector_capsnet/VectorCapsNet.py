@@ -9,38 +9,41 @@ class VectorCapsNet:
         self.conf = conf
         self.summary_list = []
         self.is_train = is_train
+        self.build()
 
-    def __call__(self, x):
+    def build(self):
+        self.conv = layers.Conv2D(filters=64, kernel_size=5, strides=1,
+                                  padding='same', activation='relu', name='conv1')
+        self.conv_cap1 = ConvCapsuleLayer(kernel_size=5, num_caps=2, caps_dim=16, strides=2,
+                                          padding='same', routings=3, name='conv_cap1')
+        self.conv_cap2 = ConvCapsuleLayer(kernel_size=5, num_caps=4, caps_dim=16, strides=2,
+                                          padding='same', routings=3, name='conv_cap2')
+        self.fc_cap = FCCapsuleLayer(num_caps=self.conf.num_fc_caps, caps_dim=self.conf.fc_caps_dim,
+                                     routings=3, name='fc_cap')
+
+    def __call__(self, x, reuse=False):
         # Building network...
-        with tf.variable_scope('CapsNet', reuse=tf.AUTO_REUSE):
+        with tf.variable_scope('CapsNet', reuse=reuse):
             # Layer 1: A 3D conv layer
-            conv1 = layers.Conv2D(filters=64, kernel_size=5, strides=1,
-                                  padding='same', activation='relu', name='conv1')(x)
-
+            conv1 = self.conv(x)
             # Reshape layer to be 1 capsule x caps_dim(=filters)
             _, H, W, C = conv1.get_shape()
             conv1_reshaped = layers.Reshape((H.value, W.value, 1, C.value))(conv1)
 
             # Layer 2: Convolutional Capsule
-            primary_caps = ConvCapsuleLayer(kernel_size=5, num_caps=4, caps_dim=16, strides=2, padding='same',
-                                            routings=3, name='primarycaps')(conv1_reshaped)
+            out_caps = self.conv_cap1(conv1_reshaped)
 
             # Layer 3: Convolutional Capsule
-            # secondary_caps = ConvCapsuleLayer(kernel_size=5, num_caps=4, caps_dim=8, strides=2, padding='same',
-            #                                   routings=3, name='secondarycaps')(primary_caps)
-            _, H, W, D, dim = primary_caps.get_shape()
-            sec_cap_reshaped = layers.Reshape((H.value * W.value * D.value, dim.value))(primary_caps)
+            out_caps = self.conv_cap2(out_caps)
+            _, H, W, D, dim = out_caps.get_shape()
+            self.out_caps = layers.Reshape((H.value * W.value * D.value, dim.value))(out_caps)
 
-            # Layer 4: Fully-connected Capsule
-            self.digit_caps = FCCapsuleLayer(num_caps=self.conf.num_digit_caps, caps_dim=self.conf.digit_caps_dim,
-                                             routings=3, name='secondarycaps')(sec_cap_reshaped)
-            # [?, num_digit_caps, digit_caps_dim]
-            epsilon = 1e-9
-            self.v_length = tf.squeeze(tf.sqrt(tf.reduce_sum(tf.square(self.digit_caps),
-                                                             axis=2, keep_dims=True) + epsilon), axis=-1)
-            # [?, 10]
+            if self.conf.fc:
+                # Layer 4: Fully-connected Capsule
+                self.out_caps = self.fc_cap(self.out_caps)
+                # [?, num_fc_caps, fc_caps_dim]
 
-        return self.digit_caps
+        return self.out_caps
 
     # def mask(self):
     #     with tf.variable_scope('Masking'):

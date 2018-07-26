@@ -15,6 +15,7 @@ import os
 import tensorflow as tf
 from models.CapsNet.loss_ops import margin_loss, spread_loss
 from models.CapsNet.matrix_capsnet.ops import capsule_fc
+from models.CapsNet.vector_capsnet.layers.FC_Caps import FCCapsuleLayer
 
 
 class SiameseCapsNet(object):
@@ -64,13 +65,27 @@ class SiameseCapsNet(object):
                                                                   add_coord=self.conf.add_coords,
                                                                   name='capsule_fc2')
             self.y_pred = tf.to_int32(tf.argmax(self.out_act, axis=1))
+
         elif self.conf.model == 'vector_capsule':
             from models.CapsNet.vector_capsnet.VectorCapsNet import VectorCapsNet
             Network = VectorCapsNet(self.conf, self.is_train)
-            with tf.variable_scope('Siamese', reuse=tf.AUTO_REUSE):
+            reuse = False
+            with tf.variable_scope('Siamese', reuse=reuse):
+                out_caps_list = []
                 x = tf.unstack(self.x, axis=-1)
                 for i in range(self.conf.numCrops):
-                    self.y_pred, self.v_length, self.decoder_output = Network(x[i])
+                    out_caps = Network(x[i], reuse=reuse)
+                    out_caps_list.append(out_caps)
+                    reuse = True
+                out_caps = tf.concat(out_caps_list, axis=1)
+                self.out_caps = FCCapsuleLayer(num_caps=self.conf.hammingSetSize, caps_dim=self.conf.out_caps_dim,
+                                               routings=3, name='fc_caps')(out_caps)
+                # [?, hammingSetSize, out_caps_dim]
+                epsilon = 1e-9
+                self.v_length = tf.squeeze(tf.sqrt(tf.reduce_sum(tf.square(self.out_caps),
+                                                                 axis=2, keep_dims=True) + epsilon), axis=-1)
+                # [?, hammingSetSize]
+                self.y_pred = tf.to_int32(tf.argmax(self.v_length, axis=1))
 
     def accuracy_func(self):
         with tf.name_scope('Accuracy'):
@@ -113,7 +128,6 @@ class SiameseCapsNet(object):
     def generate_margin(self):
         # margin schedule
         # margin increase from 0.2 to 0.9 after margin_schedule_epoch_achieve_max
-        self.NUM_STEPS_PER_EPOCH = int(self.conf.N / self.conf.batchSize)
         margin_schedule_epoch_achieve_max = 10.0
         self.margin = tf.train.piecewise_constant(tf.cast(self.global_step, dtype=tf.int32),
                                                   boundaries=[int(self.NUM_STEPS_PER_EPOCH *
@@ -122,6 +136,7 @@ class SiameseCapsNet(object):
                                                   values=[x / 10.0 for x in range(2, 10)])
 
     def configure_network(self):
+        self.NUM_STEPS_PER_EPOCH = int(self.conf.N / self.conf.batchSize)
         self.loss_func()
         self.accuracy_func()
 
