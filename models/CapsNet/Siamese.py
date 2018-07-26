@@ -74,18 +74,21 @@ class SiameseCapsNet(object):
                 out_caps_list = []
                 x = tf.unstack(self.x, axis=-1)
                 for i in range(self.conf.numCrops):
-                    out_caps = Network(x[i], reuse=reuse)
+                    out_caps, summary_list = Network(x[i], reuse=reuse)
                     out_caps_list.append(out_caps)
                     reuse = True
                 out_caps = tf.concat(out_caps_list, axis=1)
-                self.out_caps = FCCapsuleLayer(num_caps=self.conf.hammingSetSize, caps_dim=self.conf.out_caps_dim,
-                                               routings=3, name='fc_caps')(out_caps)
+                fc_layer = FCCapsuleLayer(num_caps=self.conf.hammingSetSize, caps_dim=self.conf.out_caps_dim,
+                                          routings=3, name='fc_caps')
+                self.out_caps = fc_layer(out_caps)
+                summary_list.append(tf.summary.histogram('fc_caps/w', fc_layer.W))
                 # [?, hammingSetSize, out_caps_dim]
                 epsilon = 1e-9
                 self.v_length = tf.squeeze(tf.sqrt(tf.reduce_sum(tf.square(self.out_caps),
                                                                  axis=2, keep_dims=True) + epsilon), axis=-1)
                 # [?, hammingSetSize]
                 self.y_pred = tf.to_int32(tf.argmax(self.v_length, axis=1))
+                self.summary_list.append(summary_list)
 
     def accuracy_func(self):
         with tf.name_scope('Accuracy'):
@@ -218,7 +221,7 @@ class SiameseCapsNet(object):
                     loss, acc = self.sess.run([self.mean_loss, self.mean_accuracy])
                     global_step = (epoch - 1) * self.data_reader.numTrainBatch + train_step
                     self.save_summary(summary, global_step, mode='train')
-                    print('step: {0:<6}, train_loss= {1:.4f}, train_acc={2:.2f}%'.format(train_step, loss, acc*100))
+                    print('step: {0:<6}, train_loss= {1:.4f}, train_acc={2:.2f}%'.format(train_step, loss, acc * 100))
                 else:
                     self.sess.run([self.train_op, self.mean_loss_op, self.mean_accuracy_op], feed_dict=feed_dict)
             self.evaluate(epoch)

@@ -12,14 +12,17 @@ class VectorCapsNet:
         self.build()
 
     def build(self):
-        self.conv = layers.Conv2D(filters=64, kernel_size=5, strides=1,
-                                  padding='same', activation='relu', name='conv1')
-        self.conv_cap1 = ConvCapsuleLayer(kernel_size=5, num_caps=2, caps_dim=16, strides=2,
-                                          padding='same', routings=3, name='conv_cap1')
-        self.conv_cap2 = ConvCapsuleLayer(kernel_size=5, num_caps=4, caps_dim=16, strides=2,
-                                          padding='same', routings=3, name='conv_cap2')
+        self.summary_list = []
+        self.conv = layers.Conv2D(filters=64, kernel_size=5, strides=2,
+                                  padding='valid', activation='relu', name='conv1')
+        self.conv_cap1 = ConvCapsuleLayer(kernel_size=3, num_caps=2, caps_dim=16, strides=2,
+                                          padding='valid', routings=2, name='conv_cap1')
+        self.conv_cap2 = ConvCapsuleLayer(kernel_size=3, num_caps=4, caps_dim=16, strides=2,
+                                          padding='valid', routings=2, name='conv_cap2')
+        self.conv_cap3 = ConvCapsuleLayer(kernel_size=3, num_caps=4, caps_dim=16, strides=2,
+                                          padding='valid', routings=2, name='conv_cap3')
         self.fc_cap = FCCapsuleLayer(num_caps=self.conf.num_fc_caps, caps_dim=self.conf.fc_caps_dim,
-                                     routings=3, name='fc_cap')
+                                     routings=2, name='fc_cap')
 
     def __call__(self, x, reuse=False):
         # Building network...
@@ -35,15 +38,26 @@ class VectorCapsNet:
 
             # Layer 3: Convolutional Capsule
             out_caps = self.conv_cap2(out_caps)
+
+            # Layer 4: Convolutional Capsule
+            out_caps = self.conv_cap3(out_caps)
+
             _, H, W, D, dim = out_caps.get_shape()
             self.out_caps = layers.Reshape((H.value * W.value * D.value, dim.value))(out_caps)
+
+            if not reuse:
+                self.summary_list.append(tf.summary.histogram('conv/w', self.conv.weights[0]))
+                self.summary_list.append(tf.summary.histogram('conv/b', self.conv.weights[1]))
+                self.summary_list.append(tf.summary.histogram('convcap1/W', self.conv_cap1.W))
+                self.summary_list.append(tf.summary.histogram('convcap2/W', self.conv_cap2.W))
 
             if self.conf.fc:
                 # Layer 4: Fully-connected Capsule
                 self.out_caps = self.fc_cap(self.out_caps)
                 # [?, num_fc_caps, fc_caps_dim]
+                self.summary_list.append(tf.summary.histogram('FC/W', self.fc_cap.W))
 
-        return self.out_caps
+        return self.out_caps, self.summary_list
 
     # def mask(self):
     #     with tf.variable_scope('Masking'):
