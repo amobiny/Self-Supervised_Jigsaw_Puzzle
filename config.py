@@ -35,6 +35,9 @@ flags.DEFINE_float('m_plus', 0.9, 'm+ parameter')
 flags.DEFINE_float('m_minus', 0.1, 'm- parameter')
 flags.DEFINE_float('lambda_val', 0.5, 'Down-weighting parameter for the absent class')
 
+# Vector Capsule architecture
+flags.DEFINE_integer('prim_caps_dim', 128, 'Dimension of the primary capsules')
+
 # hamming set
 flags.DEFINE_boolean('generateHammingSet', False, 'Generate a new HammingSet')
 flags.DEFINE_integer('hammingSetSize', 100, 'Hamming set size')
@@ -54,8 +57,8 @@ flags.DEFINE_integer('SUMMARY_FREQ', 100, 'Number of step to save summary')
 flags.DEFINE_integer('VAL_FREQ', 1000, 'Number of step to evaluate the network on Validation data')
 
 # Hyper-parameters
-flags.DEFINE_integer('batchSize', 10, 'training batch size')
-flags.DEFINE_integer('val_batch_size', 10, 'validation batch size')
+flags.DEFINE_integer('batchSize', 2, 'training batch size')
+flags.DEFINE_integer('val_batch_size', 2, 'validation batch size')
 flags.DEFINE_float('init_lr', 1e-3, 'Initial learning rate')
 flags.DEFINE_float('lr_min', 1e-5, 'Minimum learning rate')
 

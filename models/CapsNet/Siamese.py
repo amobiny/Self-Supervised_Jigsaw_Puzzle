@@ -66,9 +66,12 @@ class SiameseCapsNet(object):
                                                                   name='capsule_fc2')
             self.y_pred = tf.to_int32(tf.argmax(self.out_act, axis=1))
 
-        elif self.conf.model == 'vector_capsule':
-            from models.CapsNet.vector_capsnet.VectorCapsNet import VectorCapsNet
-            Network = VectorCapsNet(self.conf, self.is_train)
+        else:
+            if self.conf.model == 'vector_capsule':
+                from models.CapsNet.vector_capsnet.VectorCapsNet import VectorCapsNet as CapsNet
+            elif self.conf.model == 'orig_capsule':
+                from models.CapsNet.vector_capsnet.OrigCapsNet import OrigCapsNet as CapsNet
+            Network = CapsNet(self.conf, self.is_train)
             reuse = False
             with tf.variable_scope('Siamese', reuse=reuse):
                 out_caps_list = []
